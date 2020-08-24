@@ -1,117 +1,84 @@
 import { renderHook, act } from "@testing-library/react-hooks";
-import { useMachine, CreateEventMap, EventMap, CreateStateMap } from "../src/useMachine";
+import { useMachine, CreateState } from "../src/useMachine";
 
 test("basic transitions", () => {
   const something = { value: "foo" };
 
-  type State =
-    | {
-        state: "idle";
-        value?: string;
-      }
-    | {
-        state: "editing";
-        value: string;
-      }
-    | {
-        state: "submitted";
-        value: string;
-        id: string;
+  type State = CreateState<
+    { value?: string },
+    {
+      idle: {
+        on: {
+          focus: null;
+        };
       };
-
-  type Event = CreateEventMap<{
-    focus: null;
-    change: { value: string };
-    submit: { isValid: boolean };
-  }>;
-
-  type AKAK = CreateStateMap<Event, {
-    idle: {
-      data: {},
-      events: {}
+      editing: {
+        on: {
+          change: { value: string };
+          submit: { isValid: boolean };
+        };
+        data: {
+          value: string;
+        };
+      };
+      submitted: {
+        on: {};
+        data: {
+          id: string;
+        };
+      };
     }
-  }>
-
-  // type StateMap<E extends EventMap> = {
-  //   [key: string]: Partial<Record<keyof E, E[keyof E]>>
-  // }
-
-  // type CreateStateMap<E extends EventMap, S extends StateMap<E>> = S
-
-  // type SSS = CreateStateMap<Event, {
-  //   idle: Pick<Event, "focus">,
-  //   editing: {
-  //     kaka: {}
-  //   }
-  // }>
-
-  // type Stattt = {
-  //   idle: Pick<Event, "focus">,
-  //   editing: Pick<Event, "change"|"submit">
-  //   submitted: {
-  //     kook: {}
-  //   }
-  // }
+  >;
 
   const errors = [];
 
   const { result } = renderHook(() =>
-    useMachine<State, Event>(
-      (state, event) => ({
+    useMachine<State>(
+      {
         idle: {
           focus: {
             state: "editing",
-            value: "",
+            data: {
+              value: "asdas",
+            },
           },
         },
         editing: {
-          change: (state, { value }) => ({
-            ...state,
-            value,
-          }),
-          submit: (state, { isValid }) =>
-            isValid
-              ? [
-                () => { console.log("submitted!") },
-                {
-                  ...state,
-                  state: "submitted",
-                  id: "lol",
-                  value: state.
-                }
-              ]
-              : [
-                  () => {
-                    errors.push("error when submitting");
-                  },
-                  state,
-                ],
+          change: (state, { value }) => [
+            () => void (something.value = "bar"),
+            {
+              ...state,
+              value,
+            },
+          ],
+          submit: (state, { isValid }) => [
+            () => {},
+            {
+              state: "submitted",
+              data: {
+                id: "loool",
+              },
+            },
+          ],
         },
         submitted: {},
-      }),
+      },
       {
         state: "idle",
+        data: {},
       }
     )
   );
 
   act(() => {
-    console.log(result.current[1]);
-
     result.current[1].focus();
   });
 
   expect(result.current[0].state).toBe("editing");
 
   act(() => {
-    result.current[1].change();
+    result.current[1].change({ value: "lol" });
   });
 
   expect(something.value).toBe("bar");
-
-  act(() => {
-    result.current[1].blur();
-  });
-
-  expect(result.current[0].state).toBe("idle");
 });

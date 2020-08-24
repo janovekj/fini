@@ -1,21 +1,18 @@
 import { useEffectReducer, EffectReducer } from "use-effect-reducer";
 import { isFunction, isObject } from "./util";
-type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
-// & BaseData extends {} ? { data: BaseData } : { data: {} }
 
-type Statty = {
+type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
+
+type StateMap = {
   [state: string]: {
-    events: {
+    on: {
       [event: string]: Record<string, {}> | null;
     };
     data?: Record<string, any>;
   };
 };
 
-type CreSta<BaseData, S extends Statty> = {
-  // [K in keyof S]: Overwrite<S[K], {
-  //   data: keyof S[K] extends "data" ? S[K]["data"] : BaseData;
-  // }>
+export type CreateState<BaseData, S extends StateMap> = {
   // use BaseData and overwrite them with explicit data for state
   [K in keyof S]: Overwrite<
     S[K],
@@ -28,40 +25,66 @@ type CreSta<BaseData, S extends Statty> = {
   >;
 };
 
-type Schema2<S extends Statty> = {
-  [K in keyof S]: {
-    [E in keyof S[K]["events"]]: EventNode2<S, S[K]["events"][E]>;
-  };
-};
-
-type EffectStateTuple2<S extends Statty> =
-  | [EffectFunction]
-  | [EffectFunction, ToState<S>];
-
-type EventNode2<S extends Statty, P> =
-  | ToState<S>
-  | EffectStateTuple2<S>
-  | (P extends {}
-      ? (state: S, payload: P) => S | EffectStateTuple2<S>
-      : (state: S) => S | EffectStateTuple2<S>);
-
-type ToState<S extends Statty> = {
+type State<S extends StateMap> = {
   [K in keyof S]: {
     state: K;
     data: S[K]["data"];
   };
 }[keyof S];
 
-type KOKOl = CreSta<
+type CleanupFunction = () => void;
+type EffectFunction = () => void | CleanupFunction;
+
+type StateLike = {
+  state: string;
+  data: Record<string, any>;
+};
+
+type EffectStateTuple<S extends StateMap> =
+  | [EffectFunction]
+  | [EffectFunction, State<S>];
+
+type EventNode<CurrentState extends StateLike, AllState extends StateMap, P> =
+  | State<AllState>
+  | EffectStateTuple<AllState>
+  | (P extends {}
+      ? (
+          state: CurrentState,
+          payload: P
+        ) => State<AllState> | EffectStateTuple<AllState>
+      : (state: CurrentState) => State<AllState> | EffectStateTuple<AllState>);
+
+type LolSc<S extends StateMap> = {
+  [K in keyof S]: {
+    [E in keyof S[K]["on"]]: {
+      state: K;
+      data: S[K]["data"];
+    };
+  };
+};
+
+type Schema<S extends StateMap> = {
+  [K in keyof S]: {
+    [E in keyof S[K]["on"]]: K extends string
+      ? EventNode<
+          { state: K; data: S[K]["data"] extends {} ? S[K]["data"] : {} },
+          S,
+          S[K]["on"][E]
+        >
+      : never;
+  };
+};
+
+type KOKOl = CreateState<
   { active: boolean; value?: string },
   {
     idle: {
-      events: {
+      on: {
         onFocus: null;
       };
     };
     editing: {
-      events: {
+      on: {
         onChange: { value: string };
       };
       data: {
@@ -71,7 +94,7 @@ type KOKOl = CreSta<
   }
 >;
 
-const fn2 = <S extends Statty>(s: Schema2<S>) => {};
+const fn2 = <S extends StateMap>(s: Schema<S>) => {};
 
 fn2<KOKOl>({
   idle: {
@@ -91,124 +114,37 @@ fn2<KOKOl>({
   },
 });
 
-// fn2<KOKOl>({
-//   idle: {
-//     onFocus: {
-//       active: true,
-//       state: "idle"
-//     }
-//   },
-//   editing: {
-//     onChange: {
-//       state: "editing",
-//       active: false,
-//       value: "sds",
-//     }
-//   }
-// })
+type Event<S extends StateMap> = {
+  [K in keyof S]: {
+    [E in keyof S[K]["on"]]: S[K]["on"][E] extends {}
+      ? { type: E; payload: S[K]["on"][E] }
+      : { type: E };
+  }[keyof S[K]["on"]];
+}[keyof S];
 
-type Kss = ToState<KOKOl>;
+type UnionToIntersection<U> = (U extends any
+? (k: U) => void
+: never) extends (k: infer I) => void
+  ? I
+  : never;
 
-const kk: Kss = {
-  state: "idle",
-  active: true,
-};
-
-const a: KOKOl = {
-  idle: {
-    data: {
-      active: true,
-    },
-    events: {
-      onFocus: null,
-    },
-  },
-  editing: {
-    data: {
-      value: "asd",
-      active: true,
-    },
-    events: {
-      onChange: { value: "asd" },
-    },
-  },
-};
-
-type StateLike = {
-  state: string;
-  data: Record<string, any>;
-};
-
-export type EventMap = {
-  [key: string]: Record<string, {}> | null;
-};
-
-export type CreateEventMap<M extends EventMap> = M;
-
-type ToEvent<E extends EventMap> = {
-  [K in keyof E]: E[K] extends {} ? { type: K; payload: E[K] } : { type: K };
-}[keyof E];
-
-type Dispatcher<E extends EventMap> = {
-  [K in keyof E]: E[K] extends {} ? (payload: E[K]) => void : () => void;
-};
-
-type StateMap<E extends EventMap> = Record<
-  string,
+type Dispatcher<S extends StateMap> = UnionToIntersection<
   {
-    events: Partial<Record<keyof E, E[keyof E]>>;
-    data: any;
-  }
+    [K in keyof S]: {
+      [E in keyof S[K]["on"]]: S[K]["on"][E] extends null
+        ? () => void
+        : (payload: S[K]["on"][E]) => void;
+    };
+  }[keyof S]
 >;
 
-export type CreateStateMap<E extends EventMap, S extends StateMap<E>> = S;
-
-type CleanupFunction = () => void;
-type EffectFunction = () => void | CleanupFunction;
-
-type EffectStateTuple<S extends StateLike> =
-  | [EffectFunction]
-  | [EffectFunction, S];
-
-type EventNode<S extends StateLike, P> =
-  | S
-  | EffectStateTuple<S>
-  | (P extends {}
-      ? (state: S, payload: P) => S | EffectStateTuple<S>
-      : (state: S) => S | EffectStateTuple<S>);
-
-type Schema<S extends StateMap<E>, E extends EventMap> = (
-  state: S,
-  event: ToEvent<E>
+export const useMachine = <S extends StateMap>(
+  schema: Schema<S>,
+  initialState: State<S>
 ) => {
-  [SK in S["state"]]: {
-    [EK in keyof E]?: EventNode<S, E[EK]>;
-  };
-};
-
-export const useMachine = <S extends StateLike, E extends EventMap>(
-  createSchema: Schema<S, E>,
-  initialState: S
-) => {
-  // @ts-expect-error - dummy event to get a copy of the schema
-  const states = createSchema(initialState, { type: "TEST" });
-  // @ts-expect-error
-  const eventMaps = Object.values<{ [key: string]: EventNode<S> }>(states);
-
-  const events: Array<keyof E> = Array.from(
-    new Set(eventMaps.flatMap(Object.keys))
-  );
-
   // @ts-ignore
-  const reducer: EffectReducer<
-    S,
-    // @ts-ignore - useEffectReducer expects an EventObject which allows [key:string]: any, which is laxer than our EventMap
-    ToEvent<E>
-  > = (state, event, exec) => {
+  const reducer: EffectReducer<State<S>, Event<S>> = (state, event, exec) => {
     const ex = (effect: EffectFunction) => exec(effect);
-
-    // const schema = createSchema(state, event, ex);
-    const schema = createSchema(state, event);
 
     for (const ss in schema) {
       if (ss === state.state) {
@@ -234,16 +170,16 @@ export const useMachine = <S extends StateLike, E extends EventMap>(
             };
 
             if (isFunction(eventNode)) {
-              // @ts-expect-error ---- for test only remove
+              // @ts-ignore
               const result = eventNode(state, event?.payload);
               if (Array.isArray(result)) {
+                // @ts-ignore
                 return handleEffectStateTuple(result);
               } else {
                 return result;
               }
             } else if (Array.isArray(eventNode)) {
               // @ts-ignore
-
               return handleEffectStateTuple(eventNode);
             } else if (isObject(eventNode)) {
               return eventNode;
@@ -260,13 +196,16 @@ export const useMachine = <S extends StateLike, E extends EventMap>(
 
   // @ts-ignore
   const [state, dispatch] = useEffectReducer(reducer, initialState);
+
+  const events = Array.from(
+    new Set(Object.values(schema).flatMap(Object.keys))
+  );
   const dispatcher = Object.assign(
     {},
     ...events.map(event => ({
-      // @ts-expect-error
-      [event]: payload => dispatch({ type: event, payload }),
+      [event]: (payload: unknown) => dispatch({ type: event, payload }),
     }))
-  ) as Dispatcher<E>;
+  ) as Dispatcher<S>;
 
   return [state, dispatcher] as const;
 };
