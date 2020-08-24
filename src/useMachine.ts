@@ -1,4 +1,8 @@
-import { useEffectReducer, EffectReducer } from "use-effect-reducer";
+import {
+  useEffectReducer,
+  EffectReducer,
+  EventObject,
+} from "use-effect-reducer";
 import { isFunction, isObject } from "./util";
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
@@ -54,15 +58,6 @@ type EventNode<CurrentState extends StateLike, AllState extends StateMap, P> =
         ) => State<AllState> | EffectStateTuple<AllState>
       : (state: CurrentState) => State<AllState> | EffectStateTuple<AllState>);
 
-type LolSc<S extends StateMap> = {
-  [K in keyof S]: {
-    [E in keyof S[K]["on"]]: {
-      state: K;
-      data: S[K]["data"];
-    };
-  };
-};
-
 type Schema<S extends StateMap> = {
   [K in keyof S]: {
     [E in keyof S[K]["on"]]: K extends string
@@ -74,45 +69,6 @@ type Schema<S extends StateMap> = {
       : never;
   };
 };
-
-type KOKOl = CreateState<
-  { active: boolean; value?: string },
-  {
-    idle: {
-      on: {
-        onFocus: null;
-      };
-    };
-    editing: {
-      on: {
-        onChange: { value: string };
-      };
-      data: {
-        value: string;
-      };
-    };
-  }
->;
-
-const fn2 = <S extends StateMap>(s: Schema<S>) => {};
-
-fn2<KOKOl>({
-  idle: {
-    onFocus: state => state,
-  },
-  editing: {
-    onChange: [
-      () => {},
-      {
-        state: "editing",
-        data: {
-          value: "asd",
-          active: true,
-        },
-      },
-    ],
-  },
-});
 
 type Event<S extends StateMap> = {
   [K in keyof S]: {
