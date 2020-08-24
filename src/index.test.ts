@@ -17,13 +17,16 @@ test("basic transitions", () => {
           change: { value: string };
           submit: { isValid: boolean };
         };
-        data: {
+        // TODO: this wasnt autorenamed when changing from data => context
+        context: {
           value: string;
         };
+        // @ts-expect-error: this shouldn't work
+        kakakakakakak: {};
       };
       submitted: {
         on: {};
-        data: {
+        context: {
           id: string;
         };
       };
@@ -36,14 +39,14 @@ test("basic transitions", () => {
         idle: {
           focus: {
             state: "editing",
-            data: {
+            context: {
               value: "asdas",
             },
           },
         },
         editing: {
           change: (state, { value }) => [
-            () => void (something.value = "bar"),
+            () => void (something.value = value),
             {
               ...state,
               value,
@@ -53,7 +56,7 @@ test("basic transitions", () => {
             () => {},
             {
               state: "submitted",
-              data: {
+              context: {
                 id: "loool",
               },
             },
@@ -63,10 +66,12 @@ test("basic transitions", () => {
       },
       {
         state: "idle",
-        data: {},
+        context: {},
       }
     )
   );
+
+  expect(result.current[0].state).toBe("idle");
 
   act(() => {
     result.current[1].focus();
@@ -78,5 +83,12 @@ test("basic transitions", () => {
     result.current[1].change({ value: "lol" });
   });
 
-  expect(something.value).toBe("bar");
+  expect(something.value).toBe("lol");
+
+  const curr = result.current[0].state;
+  act(() => {
+    result.current[1].focus();
+  });
+  // state shouldn't change
+  expect(result.current[0].state).toBe(curr);
 });

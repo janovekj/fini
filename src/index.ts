@@ -11,19 +11,19 @@ type StateMap = {
     on: {
       [event: string]: Record<string, {}> | null;
     };
-    data?: Record<string, any>;
+    context?: Record<string, any>;
   };
 };
 
-export type CreateState<BaseData, S extends StateMap> = {
+export type CreateState<BaseContext, S extends StateMap> = {
   // use BaseData and overwrite them with explicit data for state
   [K in keyof S]: Overwrite<
     S[K],
     Overwrite<
       {
-        data: BaseData;
+        context: BaseContext;
       },
-      { data: BaseData & S[K]["data"] }
+      { context: BaseContext & S[K]["context"] }
     >
   >;
 };
@@ -31,7 +31,7 @@ export type CreateState<BaseData, S extends StateMap> = {
 type State<S extends StateMap> = {
   [K in keyof S]: {
     state: K;
-    data: S[K]["data"];
+    context: S[K]["context"];
   };
 }[keyof S];
 
@@ -40,7 +40,7 @@ type EffectFunction = () => void | CleanupFunction;
 
 type StateLike = {
   state: string;
-  data: Record<string, any>;
+  context: Record<string, any>;
 };
 
 type EffectStateTuple<S extends StateMap> =
@@ -61,7 +61,10 @@ type Schema<S extends StateMap> = {
   [K in keyof S]: {
     [E in keyof S[K]["on"]]: K extends string
       ? EventNode<
-          { state: K; data: S[K]["data"] extends {} ? S[K]["data"] : {} },
+          {
+            state: K;
+            context: S[K]["context"] extends {} ? S[K]["context"] : {};
+          },
           S,
           S[K]["on"][E]
         >
