@@ -1,9 +1,8 @@
-import {
-  useEffectReducer,
-  EffectReducer,
-  EventObject,
-} from "use-effect-reducer";
-import { isFunction, isObject } from "./util";
+import { useEffectReducer, EffectReducer } from "use-effect-reducer";
+
+const isFunction = (arg: any): arg is Function => typeof arg === "function";
+
+const isObject = (arg: any): arg is object => typeof arg === "object";
 
 type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
@@ -98,7 +97,7 @@ export const useMachine = <S extends StateMap>(
   schema: Schema<S>,
   initialState: State<S>
 ) => {
-  // @ts-ignore
+  // @ts-ignore: Event<S> is not assignable to EventObject
   const reducer: EffectReducer<State<S>, Event<S>> = (state, event, exec) => {
     const ex = (effect: EffectFunction) => exec(effect);
 
@@ -129,13 +128,13 @@ export const useMachine = <S extends StateMap>(
               // @ts-ignore
               const result = eventNode(state, event?.payload);
               if (Array.isArray(result)) {
-                // @ts-ignore
+                // @ts-ignore: TS doesn't understand that we're type safe here (?)
                 return handleEffectStateTuple(result);
               } else {
                 return result;
               }
             } else if (Array.isArray(eventNode)) {
-              // @ts-ignore
+              // @ts-ignore: TS doesn't understand that we're type safe here (?)
               return handleEffectStateTuple(eventNode);
             } else if (isObject(eventNode)) {
               return eventNode;
@@ -150,7 +149,7 @@ export const useMachine = <S extends StateMap>(
     return state;
   };
 
-  // @ts-ignore
+  // @ts-ignore: Event<S> is not assignable to EventObject
   const [state, dispatch] = useEffectReducer(reducer, initialState);
 
   const events = Array.from(
