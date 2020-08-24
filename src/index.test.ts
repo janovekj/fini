@@ -1,5 +1,5 @@
 import { renderHook, act } from "@testing-library/react-hooks";
-import { useMachine, CreateState } from "../src/useMachine";
+import { useMachine, CreateState } from "./index";
 
 test("basic transitions", () => {
   const something = { value: "foo" };
@@ -29,8 +29,6 @@ test("basic transitions", () => {
       };
     }
   >;
-
-  const errors = [];
 
   const { result } = renderHook(() =>
     useMachine<State>(
