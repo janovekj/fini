@@ -1,27 +1,6 @@
 import { renderHook, act } from "@testing-library/react-hooks";
 import { useMachine, CreateState } from "../src/useMachine2";
 
-// isValid
-//     ? [
-//         () => {
-//           console.log("submitted!");
-//         },
-//         {
-//           ...state,
-//           state: "submitted",
-//           data: {
-//             id: "lol",
-//             value: "lasdlas",
-//           },
-//         },
-//       ]
-//     : [
-//         () => {
-//           errors.push("error when submitting");
-//         },
-//         state,
-//       ]
-
 test("basic transitions", () => {
   const something = { value: "foo" };
 
@@ -29,12 +8,12 @@ test("basic transitions", () => {
     { value?: string },
     {
       idle: {
-        events: {
+        on: {
           focus: null;
         };
       };
       editing: {
-        events: {
+        on: {
           change: { value: string };
           submit: { isValid: boolean };
         };
@@ -43,7 +22,7 @@ test("basic transitions", () => {
         };
       };
       submitted: {
-        events: {};
+        on: {};
         data: {
           id: string;
         };
@@ -65,16 +44,28 @@ test("basic transitions", () => {
           },
         },
         editing: {
-          change: (state, { value }) => ({
-            ...state,
-            value,
-          }),
-          submit: (state, { isValid }) => [() => {}, state],
+          change: (state, { value }) => [
+            () => void (something.value = "bar"),
+            {
+              ...state,
+              value,
+            },
+          ],
+          submit: (state, { isValid }) => [
+            () => {},
+            {
+              state: "submitted",
+              data: {
+                id: "loool",
+              },
+            },
+          ],
         },
         submitted: {},
       },
       {
         state: "idle",
+        data: {},
       }
     )
   );
@@ -88,14 +79,8 @@ test("basic transitions", () => {
   expect(result.current[0].state).toBe("editing");
 
   act(() => {
-    result.current[1].change();
+    result.current[1].change({ value: "lol" });
   });
 
   expect(something.value).toBe("bar");
-
-  act(() => {
-    result.current[1].blur();
-  });
-
-  expect(result.current[0].state).toBe("idle");
 });

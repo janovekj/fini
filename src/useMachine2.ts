@@ -5,7 +5,7 @@ type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
 
 type StateMap = {
   [state: string]: {
-    events: {
+    on: {
       [event: string]: Record<string, {}> | null;
     };
     data?: Record<string, any>;
@@ -25,7 +25,7 @@ export type CreateState<BaseData, S extends StateMap> = {
   >;
 };
 
-type ToState<S extends StateMap> = {
+type State<S extends StateMap> = {
   [K in keyof S]: {
     state: K;
     data: S[K]["data"];
@@ -42,23 +42,21 @@ type StateLike = {
 
 type EffectStateTuple<S extends StateMap> =
   | [EffectFunction]
-  | [EffectFunction, ToState<S>];
+  | [EffectFunction, State<S>];
 
 type EventNode<CurrentState extends StateLike, AllState extends StateMap, P> =
-  | ToState<AllState>
+  | State<AllState>
   | EffectStateTuple<AllState>
   | (P extends {}
       ? (
           state: CurrentState,
           payload: P
-        ) => ToState<AllState> | EffectStateTuple<AllState>
-      : (
-          state: CurrentState
-        ) => ToState<AllState> | EffectStateTuple<AllState>);
+        ) => State<AllState> | EffectStateTuple<AllState>
+      : (state: CurrentState) => State<AllState> | EffectStateTuple<AllState>);
 
 type LolSc<S extends StateMap> = {
   [K in keyof S]: {
-    [E in keyof S[K]["events"]]: {
+    [E in keyof S[K]["on"]]: {
       state: K;
       data: S[K]["data"];
     };
@@ -67,11 +65,11 @@ type LolSc<S extends StateMap> = {
 
 type Schema<S extends StateMap> = {
   [K in keyof S]: {
-    [E in keyof S[K]["events"]]: K extends string
+    [E in keyof S[K]["on"]]: K extends string
       ? EventNode<
           { state: K; data: S[K]["data"] extends {} ? S[K]["data"] : {} },
           S,
-          S[K]["events"][E]
+          S[K]["on"][E]
         >
       : never;
   };
@@ -81,12 +79,12 @@ type KOKOl = CreateState<
   { active: boolean; value?: string },
   {
     idle: {
-      events: {
+      on: {
         onFocus: null;
       };
     };
     editing: {
-      events: {
+      on: {
         onChange: { value: string };
       };
       data: {
@@ -116,32 +114,36 @@ fn2<KOKOl>({
   },
 });
 
-type ToEvent<S extends StateMap> = {
+type Event<S extends StateMap> = {
   [K in keyof S]: {
-    [E in keyof S[K]["events"]]: S[K]["events"][E] extends {}
-      ? { type: E; payload: S[K]["events"][E] }
+    [E in keyof S[K]["on"]]: S[K]["on"][E] extends {}
+      ? { type: E; payload: S[K]["on"][E] }
       : { type: E };
-  }[keyof S[K]["events"]];
+  }[keyof S[K]["on"]];
 }[keyof S];
 
-type Dispatcher<S extends StateMap> = {
-  [K in keyof S]: {
-    [E in keyof S[K]["events"]]: S[K]["events"][E] extends {}
-      ? (payload: S[K]["events"][E]) => void
-      : () => void;
-  };
-}[keyof S];
+type UnionToIntersection<U> = (U extends any
+? (k: U) => void
+: never) extends (k: infer I) => void
+  ? I
+  : never;
+
+type Dispatcher<S extends StateMap> = UnionToIntersection<
+  {
+    [K in keyof S]: {
+      [E in keyof S[K]["on"]]: S[K]["on"][E] extends null
+        ? () => void
+        : (payload: S[K]["on"][E]) => void;
+    };
+  }[keyof S]
+>;
 
 export const useMachine = <S extends StateMap>(
   schema: Schema<S>,
-  initialState: S
+  initialState: State<S>
 ) => {
   // @ts-ignore
-  const reducer: EffectReducer<ToState<S>, ToEvent<S>> = (
-    state,
-    event,
-    exec
-  ) => {
+  const reducer: EffectReducer<State<S>, Event<S>> = (state, event, exec) => {
     const ex = (effect: EffectFunction) => exec(effect);
 
     for (const ss in schema) {
