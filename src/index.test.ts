@@ -66,7 +66,6 @@ test("basic transitions", () => {
       },
       {
         state: "idle",
-        context: {},
       }
     )
   );

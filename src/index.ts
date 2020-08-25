@@ -4,8 +4,6 @@ const isFunction = (arg: any): arg is Function => typeof arg === "function";
 
 const isObject = (arg: any): arg is object => typeof arg === "object";
 
-type Overwrite<T, U> = Pick<T, Exclude<keyof T, keyof U>> & U;
-
 type StateMap = {
   [state: string]: {
     on: {
@@ -17,22 +15,29 @@ type StateMap = {
 
 export type CreateState<BaseContext, S extends StateMap> = {
   // use BaseData and overwrite them with explicit data for state
-  [K in keyof S]: Overwrite<
-    S[K],
-    Overwrite<
-      {
-        context: BaseContext;
-      },
-      { context: BaseContext & S[K]["context"] }
-    >
-  >;
+  [K in keyof S]: Omit<S[K], "context"> & {
+    context: BaseContext & S[K]["context"];
+  };
 };
 
+/*
+TODO use this instead of the stuff below?
+
+type CanBeOmitted<T, Y = T, N = never> = {} extends T
+  ? Y // T is weak (all props are optional), or
+  : undefined extends T
+  ? Y // T can be undefined
+  : N;
+*/
+// context is optional if's a weak object, i.e. all it's props are optional
 type State<S extends StateMap> = {
   [K in keyof S]: {
     state: K;
-    context: S[K]["context"];
-  };
+  } & ({} extends S[K]["context"]
+    ? { context?: S[K]["context"] }
+    : S[K]["context"] extends undefined
+    ? {}
+    : { context: S[K]["context"] });
 }[keyof S];
 
 type CleanupFunction = () => void;
