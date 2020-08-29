@@ -40,6 +40,13 @@ type State<S extends StateMap> = {
     : { context: S[K]["context"] });
 }[keyof S];
 
+type StateWithContext<S extends StateMap> = {
+  [K in keyof S]: {
+    state: K;
+    context: S[K]["context"] extends undefined ? {} : S[K]["context"];
+  };
+}[keyof S];
+
 type CleanupFunction = () => void;
 type EffectFunction = () => void | CleanupFunction;
 
@@ -106,9 +113,11 @@ export const useMachine = <S extends StateMap>(
   initialState: State<S>
 ) => {
   // @ts-ignore: Event<S> is not assignable to EventObject
-  const reducer: EffectReducer<State<S>, Event<S>> = (state, event, exec) => {
-    const ex = (effect: EffectFunction) => exec(effect);
-
+  const reducer: EffectReducer<StateWithContext<S>, Event<S>> = (
+    state,
+    event,
+    exec
+  ) => {
     for (const ss in schema) {
       if (ss === state.state) {
         const currentNode = schema[ss as keyof typeof schema];
@@ -123,11 +132,11 @@ export const useMachine = <S extends StateMap>(
             const handleEffectStateTuple = (result: EffectStateTuple<S>) => {
               if (result.length === 2) {
                 const [effect, newState] = result;
-                ex(effect);
+                exec(effect);
                 return newState;
               } else {
                 const [effect] = result;
-                ex(effect);
+                exec(effect);
                 return state;
               }
             };
@@ -158,7 +167,14 @@ export const useMachine = <S extends StateMap>(
   };
 
   // @ts-ignore: Event<S> is not assignable to EventObject
-  const [state, dispatch] = useEffectReducer(reducer, initialState);
+  const [reducerState, dispatch] = useEffectReducer(reducer, initialState);
+
+  const state = reducerState.context
+    ? reducerState
+    : {
+        ...reducerState,
+        context: {},
+      };
 
   const events = Array.from(
     new Set(Object.values(schema).flatMap(Object.keys))

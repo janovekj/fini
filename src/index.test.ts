@@ -4,8 +4,12 @@ import { useMachine, CreateState } from "./index";
 test("basic transitions", () => {
   const something = { value: "foo" };
 
+  type BaseContext = {
+    value?: string;
+  };
+
   type State = CreateState<
-    { value?: string },
+    BaseContext,
     {
       idle: {
         on: {
@@ -17,12 +21,10 @@ test("basic transitions", () => {
           change: { value: string };
           submit: { isValid: boolean };
         };
-        // TODO: this wasnt autorenamed when changing from data => context
+        // TODO: this wasnt autorenamed when changing from data => context. should it have been?
         context: {
           value: string;
         };
-        // @ts-expect-error: this shouldn't work
-        kakakakakakak: {};
       };
       submitted: {
         on: {};
@@ -70,6 +72,10 @@ test("basic transitions", () => {
     )
   );
 
+  // context should be defined, even if doesn't have any initial values
+  expect(result.current[0].context).toEqual({});
+  expect(result.current[0].context.value).toBe(undefined);
+
   expect(result.current[0].state).toBe("idle");
 
   act(() => {
@@ -84,10 +90,10 @@ test("basic transitions", () => {
 
   expect(something.value).toBe("lol");
 
-  const curr = result.current[0].state;
   act(() => {
     result.current[1].focus();
   });
+
   // state shouldn't change
-  expect(result.current[0].state).toBe(curr);
+  expect(result.current[0].state).toBe("editing");
 });
