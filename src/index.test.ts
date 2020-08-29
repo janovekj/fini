@@ -168,3 +168,134 @@ test("string based transition", () => {
   expect(result.current[0].state.current).toBe("b");
   expect(result.current[0].state.is.b).toBeTruthy();
 });
+
+test("function based transition with value", () => {
+  type State = CreateState<
+    { prop: string },
+    {
+      a: {
+        on: {
+          event: {
+            newValue: string;
+          };
+        };
+      };
+      b: {
+        on: {};
+      };
+    }
+  >;
+
+  const { result } = renderHook(() =>
+    useMachine<State>(
+      {
+        a: {
+          event: ({ context }, { newValue }) => ({
+            state: "b",
+            context: {
+              ...context,
+              prop: newValue,
+            },
+          }),
+        },
+        b: {},
+      },
+      { state: "a", context: { prop: "test" } }
+    )
+  );
+
+  act(() => {
+    result.current[1].event({ newValue: "new value" });
+  });
+
+  expect(result.current[0].state.current).toBe("b");
+  expect(result.current[0].context.prop).toBe("new value");
+});
+
+test("tuple based transition with side-effect", () => {
+  type State = CreateState<
+    { prop: string },
+    {
+      a: {
+        on: {
+          event: null;
+        };
+      };
+      b: {
+        on: {};
+      };
+    }
+  >;
+
+  const value = { current: "test" };
+  const { result } = renderHook(() =>
+    useMachine<State>(
+      {
+        a: {
+          event: [
+            () => void (value.current = "new value"),
+            {
+              state: "b",
+              context: {
+                prop: "asd",
+              },
+            },
+          ],
+        },
+        b: {},
+      },
+      { state: "a", context: { prop: "test" } }
+    )
+  );
+
+  act(() => {
+    result.current[1].event();
+  });
+
+  expect(result.current[0].state.current).toBe("b");
+  expect(result.current[0].context.prop).toBe("asd");
+  expect(value.current).toBe("new value");
+});
+
+test("tuple from function based transition with side-effect", () => {
+  type State = CreateState<
+    { prop: string },
+    {
+      a: {
+        on: {
+          event: null;
+        };
+      };
+      b: {
+        on: {};
+      };
+    }
+  >;
+
+  const value = { current: "test" };
+  const { result } = renderHook(() =>
+    useMachine<State>(
+      {
+        a: {
+          event: ({ context }) => [
+            () => void (value.current = "new value"),
+            {
+              state: "b",
+              context,
+            },
+          ],
+        },
+        b: {},
+      },
+      { state: "a", context: { prop: "test" } }
+    )
+  );
+
+  act(() => {
+    result.current[1].event();
+  });
+
+  expect(result.current[0].state.current).toBe("b");
+  expect(result.current[0].context.prop).toBe("test");
+  expect(value.current).toBe("new value");
+});
