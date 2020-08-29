@@ -136,13 +136,13 @@ export const useMachine = <S extends StateMap>(
               // @ts-ignore
               const result = eventNode(state, event?.payload);
               if (Array.isArray(result)) {
-                // @ts-ignore: TS doesn't understand that we're type safe here (?)
+                // @ts-ignore: TS doesn't understand that we're type safe here (are we?)
                 return handleEffectStateTuple(result);
               } else {
                 return result;
               }
             } else if (Array.isArray(eventNode)) {
-              // @ts-ignore: TS doesn't understand that we're type safe here (?)
+              // @ts-ignore: TS doesn't understand that we're type safe here (are we?)
               return handleEffectStateTuple(eventNode);
             } else if (isObject(eventNode)) {
               return eventNode;
@@ -172,6 +172,7 @@ export const useMachine = <S extends StateMap>(
     };
   }[keyof S];
 
+  // @ts-ignore: TS doesn't like assigning {} to context
   const state: Current<S> = {
     state: {
       current: reducerState.state,
