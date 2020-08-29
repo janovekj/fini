@@ -20,15 +20,6 @@ export type CreateState<BaseContext, S extends StateMap> = {
   };
 };
 
-/*
-TODO use this instead of the stuff below?
-
-type CanBeOmitted<T, Y = T, N = never> = {} extends T
-  ? Y // T is weak (all props are optional), or
-  : undefined extends T
-  ? Y // T can be undefined
-  : N;
-*/
 // context is optional if's a weak object, i.e. all it's props are optional
 type State<S extends StateMap> = {
   [K in keyof S]: {
@@ -169,12 +160,28 @@ export const useMachine = <S extends StateMap>(
   // @ts-ignore: Event<S> is not assignable to EventObject
   const [reducerState, dispatch] = useEffectReducer(reducer, initialState);
 
-  const state = reducerState.context
-    ? reducerState
-    : {
-        ...reducerState,
-        context: {},
+  type Current<S extends StateMap> = {
+    [K in keyof S]: {
+      state: {
+        current: K;
+        is: {
+          [KK in keyof S]: KK extends K ? true : false;
+        };
       };
+      context: S[K]["context"] extends undefined ? {} : S[K]["context"];
+    };
+  }[keyof S];
+
+  const state: Current<S> = {
+    state: {
+      current: reducerState.state,
+      is: Object.assign(
+        {},
+        ...Object.keys(schema).map(s => ({ [s]: s === reducerState.state }))
+      ),
+    },
+    context: reducerState.context ?? {},
+  };
 
   const events = Array.from(
     new Set(Object.values(schema).flatMap(Object.keys))

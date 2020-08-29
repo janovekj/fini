@@ -76,13 +76,15 @@ test("basic transitions", () => {
   expect(result.current[0].context).toEqual({});
   expect(result.current[0].context.value).toBe(undefined);
 
-  expect(result.current[0].state).toBe("idle");
+  expect(result.current[0].state.current).toBe("idle");
+  expect(result.current[0].state.is.idle);
 
   act(() => {
     result.current[1].focus();
   });
 
-  expect(result.current[0].state).toBe("editing");
+  expect(result.current[0].state.current).toBe("editing");
+  expect(result.current[0].state.is.editing);
 
   act(() => {
     result.current[1].change({ value: "lol" });
@@ -94,6 +96,7 @@ test("basic transitions", () => {
     result.current[1].focus();
   });
 
-  // state shouldn't change
-  expect(result.current[0].state).toBe("editing");
+  // nothing should happen if curent state doesn't handle the event
+  expect(result.current[0].state.current).toBe("editing");
+  expect(result.current[0].state.is.editing);
 });
