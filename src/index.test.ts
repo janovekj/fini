@@ -77,14 +77,14 @@ test("basic transitions", () => {
   expect(result.current[0].context.value).toBe(undefined);
 
   expect(result.current[0].state.current).toBe("idle");
-  expect(result.current[0].state.is.idle);
+  expect(result.current[0].state.is.idle).toBeTruthy();
 
   act(() => {
     result.current[1].focus();
   });
 
   expect(result.current[0].state.current).toBe("editing");
-  expect(result.current[0].state.is.editing);
+  expect(result.current[0].state.is.editing).toBeTruthy();
 
   act(() => {
     result.current[1].change({ value: "lol" });
@@ -98,5 +98,32 @@ test("basic transitions", () => {
 
   // nothing should happen if curent state doesn't handle the event
   expect(result.current[0].state.current).toBe("editing");
-  expect(result.current[0].state.is.editing);
+  expect(result.current[0].state.is.editing).toBeTruthy();
+});
+
+test("transition with plain state object", () => {
+  const { result } = renderHook(() =>
+    useMachine(
+      {
+        a: {
+          event: {
+            state: "b",
+          },
+        },
+        b: {},
+      },
+      { state: "a" }
+    )
+  );
+
+  expect(result.current[0].state.current).toBe("a");
+  expect(result.current[0].state.is.a).toBeTruthy();
+
+  act(() => {
+    // @ts-expect-error - TODO: improve typings so that payload is optional here
+    result.current[1].event();
+  });
+
+  expect(result.current[0].state.current).toBe("b");
+  expect(result.current[0].state.is.b).toBeTruthy();
 });
