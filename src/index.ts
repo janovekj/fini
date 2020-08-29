@@ -50,7 +50,12 @@ type EffectStateTuple<S extends StateMap> =
   | [EffectFunction]
   | [EffectFunction, State<S>];
 
+type CompatibleContextStates<S extends StateMap, Current extends keyof S> = {
+  [K in keyof S]: S[Current]["context"] extends S[K]["context"] ? K : never;
+}[keyof S];
+
 type EventNode<CurrentState extends StateLike, AllState extends StateMap, P> =
+  | CompatibleContextStates<AllState, CurrentState["state"]>
   | State<AllState>
   | EffectStateTuple<AllState>
   | (P extends {}
@@ -146,6 +151,11 @@ export const useMachine = <S extends StateMap>(
               return handleEffectStateTuple(eventNode);
             } else if (isObject(eventNode)) {
               return eventNode;
+            } else if (typeof eventNode === "string" && eventNode in schema) {
+              return {
+                state: eventNode,
+                context: state.context,
+              };
             } else {
               console.error(`unknown type of EventNode`, eventNode);
             }

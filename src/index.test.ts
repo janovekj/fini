@@ -127,3 +127,44 @@ test("transition with plain state object", () => {
   expect(result.current[0].state.current).toBe("b");
   expect(result.current[0].state.is.b).toBeTruthy();
 });
+
+test("string based transition", () => {
+  type State = CreateState<
+    { prop1?: string },
+    {
+      a: {
+        on: {
+          event: null;
+        };
+        context: {
+          prop2: string;
+        };
+      };
+      b: {
+        on: {};
+        context: {
+          prop2: string;
+        };
+      };
+    }
+  >;
+
+  const { result } = renderHook(() =>
+    useMachine<State>(
+      {
+        a: {
+          event: "b",
+        },
+        b: {},
+      },
+      { state: "a", context: { prop2: "test" } }
+    )
+  );
+
+  act(() => {
+    result.current[1].event();
+  });
+
+  expect(result.current[0].state.current).toBe("b");
+  expect(result.current[0].state.is.b).toBeTruthy();
+});
