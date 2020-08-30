@@ -15,11 +15,12 @@ type StateMap = {
   };
 };
 
-export type State<Context extends {}, S extends {}> = {
+export type State<
+  EventMap extends { [key: string]: EventPayload } = {},
+  Context extends {} = {}
+> = {
   context: Context;
-  on: {
-    [K in keyof S]: EventPayload;
-  };
+  on: EventMap;
 };
 
 export type Event<Payload extends EventPayload = null> = Payload;

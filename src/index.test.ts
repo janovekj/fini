@@ -1,5 +1,5 @@
 import { renderHook, act } from "@testing-library/react-hooks";
-import { useMachine, Machine } from "./index";
+import { useMachine, Machine, State, Event } from "./index";
 
 test("various transitions", () => {
   const something = { value: "foo" };
@@ -11,21 +11,16 @@ test("various transitions", () => {
   type TestMachine = Machine<
     BaseContext,
     {
-      idle: {
-        on: {
-          focus: null;
-        };
-      };
-      editing: {
-        on: {
-          change: { value: string };
-          submit: { isValid: boolean };
-        };
-        // TODO: this wasnt autorenamed when changing from data => context. should it have been?
-        context: {
-          value: string;
-        };
-      };
+      idle: State<{
+        focus: Event;
+      }>;
+      editing: State<
+        {
+          change: Event<{ value: string }>;
+          submit: Event<{ isValid: boolean }>;
+        },
+        { value: string }
+      >;
       submitted: {
         on: {};
         context: {
@@ -132,20 +127,13 @@ test("string based transition", () => {
   type TestMachine = Machine<
     { prop1?: string },
     {
-      a: {
-        on: {
-          event: null;
-        };
-        context: {
-          prop2: string;
-        };
-      };
-      b: {
-        on: {};
-        context: {
-          prop2: string;
-        };
-      };
+      a: State<
+        {
+          event: Event;
+        },
+        { prop2: string }
+      >;
+      b: State<{}, { prop2: string }>;
     }
   >;
 
@@ -173,16 +161,10 @@ test("function based transition with value", () => {
   type TestMachine = Machine<
     { prop: string },
     {
-      a: {
-        on: {
-          event: {
-            newValue: string;
-          };
-        };
-      };
-      b: {
-        on: {};
-      };
+      a: State<{
+        event: Event<{ newValue: string }>;
+      }>;
+      b: State;
     }
   >;
 
@@ -216,14 +198,10 @@ test("tuple based transition with side-effect", () => {
   type TestMachine = Machine<
     { prop: string },
     {
-      a: {
-        on: {
-          event: null;
-        };
-      };
-      b: {
-        on: {};
-      };
+      a: State<{
+        event: Event;
+      }>;
+      b: State;
     }
   >;
 
@@ -261,14 +239,8 @@ test("tuple from function based transition with side-effect", () => {
   type TestMachine = Machine<
     { prop: string },
     {
-      a: {
-        on: {
-          event: null;
-        };
-      };
-      b: {
-        on: {};
-      };
+      a: State<{ event: Event }>;
+      b: State;
     }
   >;
 
@@ -304,17 +276,13 @@ test("simple counter example", () => {
   type CounterMachine = Machine<
     { count: number },
     {
-      counting: {
-        on: {
-          increment: null;
-          decrement: null;
-        };
-      };
-      maxedOut: {
-        on: {
-          reset: null;
-        };
-      };
+      counting: State<{
+        increment: Event;
+        decrement: Event;
+      }>;
+      maxedOut: State<{
+        reset: Event;
+      }>;
     }
   >;
 
