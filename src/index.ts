@@ -114,55 +114,55 @@ export const useMachine = <S extends StateMap>(
     event,
     exec
   ) => {
-    for (const ss in schema) {
-      if (ss === state.state) {
-        const currentNode = schema[ss as keyof typeof schema];
-        for (const ee in currentNode) {
-          if (ee === event.type) {
-            const eventNode = currentNode[ee as keyof typeof currentNode];
+    // @ts-expect-error
+    if (!state.state in schema) {
+      console.error(`State '${state.state}' does not exist in schema`);
+      return state;
+    }
+    const currentNode = schema[state.state];
 
-            if (!eventNode) {
-              console.error(`This shouldn't happen`);
-            }
+    const eventNode = currentNode[event.type];
 
-            const handleEffectStateTuple = (result: EffectStateTuple<S>) => {
-              if (result.length === 2) {
-                const [effect, newState] = result;
-                exec(effect);
-                return newState;
-              } else {
-                const [effect] = result;
-                exec(effect);
-                return state;
-              }
-            };
+    if (!eventNode) {
+      console.warn(
+        `Event handler for '${event.type}' does not exist in state '${state.state}'`
+      );
+      return state;
+    }
 
-            if (isFunction(eventNode)) {
-              // @ts-ignore
-              const result = eventNode(state, event?.payload);
-              if (Array.isArray(result)) {
-                // @ts-ignore: TS doesn't understand that we're type safe here (are we?)
-                return handleEffectStateTuple(result);
-              } else {
-                return result;
-              }
-            } else if (Array.isArray(eventNode)) {
-              // @ts-ignore: TS doesn't understand that we're type safe here (are we?)
-              return handleEffectStateTuple(eventNode);
-            } else if (isObject(eventNode)) {
-              return eventNode;
-            } else if (typeof eventNode === "string" && eventNode in schema) {
-              return {
-                state: eventNode,
-                context: state.context,
-              };
-            } else {
-              console.error(`unknown type of EventNode`, eventNode);
-            }
-            return state;
-          }
-        }
+    const handleEffectStateTuple = (result: EffectStateTuple<S>) => {
+      if (result.length === 2) {
+        const [effect, newState] = result;
+        exec(effect);
+        return newState;
+      } else {
+        const [effect] = result;
+        exec(effect);
+        return state;
       }
+    };
+
+    if (isFunction(eventNode)) {
+      // @ts-ignore
+      const result = eventNode(state, event?.payload);
+      if (Array.isArray(result)) {
+        // @ts-ignore: TS doesn't understand that we're type safe here (are we?)
+        return handleEffectStateTuple(result);
+      } else {
+        return result;
+      }
+    } else if (Array.isArray(eventNode)) {
+      // @ts-ignore: TS doesn't understand that we're type safe here (are we?)
+      return handleEffectStateTuple(eventNode);
+    } else if (isObject(eventNode)) {
+      return eventNode;
+    } else if (typeof eventNode === "string" && eventNode in schema) {
+      return {
+        state: eventNode,
+        context: state.context,
+      };
+    } else {
+      console.error(`unknown type of EventNode`, eventNode);
     }
     return state;
   };
