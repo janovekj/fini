@@ -1,5 +1,5 @@
 import { renderHook, act } from "@testing-library/react-hooks";
-import { useMachine, CreateState } from "./index";
+import { useMachine, Machine } from "./index";
 
 test("various transitions", () => {
   const something = { value: "foo" };
@@ -8,7 +8,7 @@ test("various transitions", () => {
     value?: string;
   };
 
-  type State = CreateState<
+  type TestMachine = Machine<
     BaseContext,
     {
       idle: {
@@ -36,7 +36,7 @@ test("various transitions", () => {
   >;
 
   const { result } = renderHook(() =>
-    useMachine<State>(
+    useMachine<TestMachine>(
       {
         idle: {
           focus: {
@@ -129,7 +129,7 @@ test("transition with plain state object", () => {
 });
 
 test("string based transition", () => {
-  type State = CreateState<
+  type TestMachine = Machine<
     { prop1?: string },
     {
       a: {
@@ -150,7 +150,7 @@ test("string based transition", () => {
   >;
 
   const { result } = renderHook(() =>
-    useMachine<State>(
+    useMachine<TestMachine>(
       {
         a: {
           event: "b",
@@ -170,7 +170,7 @@ test("string based transition", () => {
 });
 
 test("function based transition with value", () => {
-  type State = CreateState<
+  type TestMachine = Machine<
     { prop: string },
     {
       a: {
@@ -187,7 +187,7 @@ test("function based transition with value", () => {
   >;
 
   const { result } = renderHook(() =>
-    useMachine<State>(
+    useMachine<TestMachine>(
       {
         a: {
           event: ({ context }, { newValue }) => ({
@@ -213,7 +213,7 @@ test("function based transition with value", () => {
 });
 
 test("tuple based transition with side-effect", () => {
-  type State = CreateState<
+  type TestMachine = Machine<
     { prop: string },
     {
       a: {
@@ -229,7 +229,7 @@ test("tuple based transition with side-effect", () => {
 
   const value = { current: "test" };
   const { result } = renderHook(() =>
-    useMachine<State>(
+    useMachine<TestMachine>(
       {
         a: {
           event: [
@@ -258,7 +258,7 @@ test("tuple based transition with side-effect", () => {
 });
 
 test("tuple from function based transition with side-effect", () => {
-  type State = CreateState<
+  type TestMachine = Machine<
     { prop: string },
     {
       a: {
@@ -274,7 +274,7 @@ test("tuple from function based transition with side-effect", () => {
 
   const value = { current: "test" };
   const { result } = renderHook(() =>
-    useMachine<State>(
+    useMachine<TestMachine>(
       {
         a: {
           event: ({ context }) => [
@@ -301,7 +301,7 @@ test("tuple from function based transition with side-effect", () => {
 });
 
 test("simple counter example", () => {
-  type CounterMachine = CreateState<
+  type CounterMachine = Machine<
     { count: number },
     {
       counting: {

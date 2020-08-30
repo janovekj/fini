@@ -4,16 +4,27 @@ const isFunction = (arg: any): arg is Function => typeof arg === "function";
 
 const isObject = (arg: any): arg is object => typeof arg === "object";
 
+type EventPayload = Record<string, {}> | null;
+
 type StateMap = {
   [state: string]: {
     on: {
-      [event: string]: Record<string, {}> | null;
+      [event: string]: EventPayload;
     };
     context?: Record<string, any>;
   };
 };
 
-export type CreateState<BaseContext, S extends StateMap> = {
+export type State<Context extends {}, S extends {}> = {
+  context: Context;
+  on: {
+    [K in keyof S]: EventPayload;
+  };
+};
+
+export type Event<Payload extends EventPayload = null> = Payload;
+
+export type Machine<BaseContext, S extends StateMap> = {
   // use BaseData and overwrite them with explicit data for state
   [K in keyof S]: Omit<S[K], "context"> & {
     context: BaseContext & S[K]["context"];
@@ -21,7 +32,7 @@ export type CreateState<BaseContext, S extends StateMap> = {
 };
 
 // context is optional if's a weak object, i.e. all it's props are optional
-type State<S extends StateMap> = {
+type NextState<S extends StateMap> = {
   [K in keyof S]: {
     state: K;
   } & ({} extends S[K]["context"]
@@ -48,7 +59,7 @@ type StateLike = {
 
 type EffectStateTuple<S extends StateMap> =
   | [EffectFunction]
-  | [EffectFunction, State<S>];
+  | [EffectFunction, NextState<S>];
 
 type CompatibleContextStates<S extends StateMap, Current extends keyof S> = {
   [K in keyof S]: S[Current]["context"] extends S[K]["context"] ? K : never;
@@ -56,14 +67,16 @@ type CompatibleContextStates<S extends StateMap, Current extends keyof S> = {
 
 type EventNode<CurrentState extends StateLike, AllState extends StateMap, P> =
   | CompatibleContextStates<AllState, CurrentState["state"]>
-  | State<AllState>
+  | NextState<AllState>
   | EffectStateTuple<AllState>
   | (P extends {}
       ? (
           state: CurrentState,
           payload: P
-        ) => State<AllState> | EffectStateTuple<AllState>
-      : (state: CurrentState) => State<AllState> | EffectStateTuple<AllState>);
+        ) => NextState<AllState> | EffectStateTuple<AllState>
+      : (
+          state: CurrentState
+        ) => NextState<AllState> | EffectStateTuple<AllState>);
 
 type Schema<S extends StateMap> = {
   [K in keyof S]: {
@@ -80,7 +93,7 @@ type Schema<S extends StateMap> = {
   };
 };
 
-type Event<S extends StateMap> = {
+type EventObject<S extends StateMap> = {
   [K in keyof S]: {
     [E in keyof S[K]["on"]]: S[K]["on"][E] extends {}
       ? { type: E; payload: S[K]["on"][E] }
@@ -106,10 +119,10 @@ type Dispatcher<S extends StateMap> = UnionToIntersection<
 
 export const useMachine = <S extends StateMap>(
   schema: Schema<S>,
-  initialState: State<S>
+  initialState: NextState<S>
 ) => {
   // @ts-ignore: Event<S> is not assignable to EventObject
-  const reducer: EffectReducer<StateWithContext<S>, Event<S>> = (
+  const reducer: EffectReducer<StateWithContext<S>, EventObject<S>> = (
     state,
     event,
     exec
