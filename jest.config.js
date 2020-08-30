@@ -3,5 +3,6 @@ module.exports = {
     "ts-jest": {
       isolatedModules: true,
     },
+    __DEV__: true,
   },
 };

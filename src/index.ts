@@ -116,7 +116,9 @@ export const useMachine = <S extends StateMap>(
   ) => {
     // @ts-expect-error
     if (!state.state in schema) {
-      console.error(`State '${state.state}' does not exist in schema`);
+      if (__DEV__) {
+        console.error(`State '${state.state}' does not exist in schema`);
+      }
       return state;
     }
     const currentNode = schema[state.state];
@@ -124,9 +126,12 @@ export const useMachine = <S extends StateMap>(
     const eventNode = currentNode[event.type];
 
     if (!eventNode) {
-      console.warn(
-        `Event handler for '${event.type}' does not exist in state '${state.state}'`
-      );
+      if (__DEV__) {
+        console.warn(
+          `Event handler for '${event.type}' does not exist in state '${state.state}'`
+        );
+      }
+
       return state;
     }
 
@@ -162,7 +167,9 @@ export const useMachine = <S extends StateMap>(
         context: state.context,
       };
     } else {
-      console.error(`unknown type of EventNode`, eventNode);
+      if (__DEV__) {
+        console.error(`unknown type of EventNode`, eventNode);
+      }
     }
     return state;
   };
