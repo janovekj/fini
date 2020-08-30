@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react-hooks";
 import { useMachine, CreateState } from "./index";
 
-test("basic transitions", () => {
+test("various transitions", () => {
   const something = { value: "foo" };
 
   type BaseContext = {
@@ -298,4 +298,93 @@ test("tuple from function based transition with side-effect", () => {
   expect(result.current[0].state.current).toBe("b");
   expect(result.current[0].context.prop).toBe("test");
   expect(value.current).toBe("new value");
+});
+
+test("simple counter example", () => {
+  type CounterMachine = CreateState<
+    { count: number },
+    {
+      counting: {
+        on: {
+          increment: null;
+          decrement: null;
+        };
+      };
+      maxedOut: {
+        on: {
+          reset: null;
+        };
+      };
+    }
+  >;
+
+  const { result } = renderHook(() =>
+    useMachine<CounterMachine>(
+      {
+        counting: {
+          increment: ({ state, context }) =>
+            context.count < 7
+              ? {
+                  state,
+                  context: {
+                    count: context.count + 1,
+                  },
+                }
+              : {
+                  state: "maxedOut",
+                  context,
+                },
+          decrement: ({ state, context }) => ({
+            state,
+            context: {
+              ...context,
+              count: context.count - 1,
+            },
+          }),
+        },
+        maxedOut: {
+          reset: {
+            state: "counting",
+            context: {
+              count: 0,
+            },
+          },
+        },
+      },
+      { state: "counting", context: { count: 0 } }
+    )
+  );
+
+  act(() => {
+    result.current[1].increment();
+  });
+
+  expect(result.current[0].context.count).toBe(1);
+
+  act(() => {
+    result.current[1].increment();
+    result.current[1].increment();
+    result.current[1].increment();
+    result.current[1].increment();
+    result.current[1].decrement();
+  });
+
+  expect(result.current[0].context.count).toBe(4);
+
+  act(() => {
+    result.current[1].increment();
+    result.current[1].increment();
+    result.current[1].increment();
+    result.current[1].increment();
+  });
+
+  expect(result.current[0].context.count).toBe(7);
+  expect(result.current[0].state.current).toBe("maxedOut");
+
+  act(() => {
+    result.current[1].reset();
+  });
+
+  expect(result.current[0].context.count).toBe(0);
+  expect(result.current[0].state.current).toBe("counting");
 });
