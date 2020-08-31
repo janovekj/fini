@@ -4,7 +4,7 @@ const isFunction = (arg: any): arg is Function => typeof arg === "function";
 
 const isObject = (arg: any): arg is object => typeof arg === "object";
 
-type EventPayload = Record<string, {}> | null;
+type EventPayload = Record<string, any> | null;
 
 type StateMap = {
   [state: string]: {
