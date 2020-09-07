@@ -9,7 +9,6 @@ test("various transitions", () => {
   };
 
   type TestMachine = Machine<
-    BaseContext,
     {
       idle: State<{
         focus: Event;
@@ -27,7 +26,8 @@ test("various transitions", () => {
           id: string;
         };
       };
-    }
+    },
+    BaseContext
   >;
 
   const { result } = renderHook(() =>
@@ -71,15 +71,15 @@ test("various transitions", () => {
   expect(result.current[0].context).toEqual({});
   expect(result.current[0].context.value).toBe(undefined);
 
-  expect(result.current[0].state.current).toBe("idle");
-  expect(result.current[0].state.is.idle).toBeTruthy();
+  expect(result.current[0].current).toBe("idle");
+  expect(result.current[0].idle).toBeTruthy();
 
   act(() => {
     result.current[1].focus();
   });
 
-  expect(result.current[0].state.current).toBe("editing");
-  expect(result.current[0].state.is.editing).toBeTruthy();
+  expect(result.current[0].current).toBe("editing");
+  expect(result.current[0].editing).toBeTruthy();
 
   act(() => {
     result.current[1].change({ value: "lol" });
@@ -92,8 +92,13 @@ test("various transitions", () => {
   });
 
   // nothing should happen if curent state doesn't handle the event
-  expect(result.current[0].state.current).toBe("editing");
-  expect(result.current[0].state.is.editing).toBeTruthy();
+  expect(result.current[0].current).toBe("editing");
+  expect(result.current[0].editing).toBeTruthy();
+
+  if (result.current[0].editing) {
+    // this should not give error
+    result.current[0].context.value.toLocaleLowerCase();
+  }
 });
 
 test("transition with plain state object", () => {
@@ -111,21 +116,20 @@ test("transition with plain state object", () => {
     )
   );
 
-  expect(result.current[0].state.current).toBe("a");
-  expect(result.current[0].state.is.a).toBeTruthy();
+  expect(result.current[0].current).toBe("a");
+  expect(result.current[0].a).toBeTruthy();
 
   act(() => {
     // @ts-expect-error - TODO: improve typings so that payload is optional here
     result.current[1].event();
   });
 
-  expect(result.current[0].state.current).toBe("b");
-  expect(result.current[0].state.is.b).toBeTruthy();
+  expect(result.current[0].current).toBe("b");
+  expect(result.current[0].b).toBeTruthy();
 });
 
 test("string based transition", () => {
   type TestMachine = Machine<
-    { prop1?: string },
     {
       a: State<
         {
@@ -134,7 +138,8 @@ test("string based transition", () => {
         { prop2: string }
       >;
       b: State<{}, { prop2: string }>;
-    }
+    },
+    { prop1?: string }
   >;
 
   const { result } = renderHook(() =>
@@ -153,26 +158,26 @@ test("string based transition", () => {
     result.current[1].event();
   });
 
-  expect(result.current[0].state.current).toBe("b");
-  expect(result.current[0].state.is.b).toBeTruthy();
+  expect(result.current[0].current).toBe("b");
+  expect(result.current[0].b).toBeTruthy();
 });
 
 test("function based transition with value", () => {
   type TestMachine = Machine<
-    { prop: string },
     {
       a: State<{
         event: Event<{ newValue: string }>;
       }>;
       b: State;
-    }
+    },
+    { prop: string }
   >;
 
   const { result } = renderHook(() =>
     useMachine<TestMachine>(
       {
         a: {
-          event: ({ context }, { newValue }) => ({
+          event: (context, { newValue }) => ({
             state: "b",
             context: {
               ...context,
@@ -190,19 +195,19 @@ test("function based transition with value", () => {
     result.current[1].event({ newValue: "new value" });
   });
 
-  expect(result.current[0].state.current).toBe("b");
+  expect(result.current[0].current).toBe("b");
   expect(result.current[0].context.prop).toBe("new value");
 });
 
 test("tuple based transition with side-effect", () => {
   type TestMachine = Machine<
-    { prop: string },
     {
       a: State<{
         event: Event;
       }>;
       b: State;
-    }
+    },
+    { prop: string }
   >;
 
   const value = { current: "test" };
@@ -230,18 +235,18 @@ test("tuple based transition with side-effect", () => {
     result.current[1].event();
   });
 
-  expect(result.current[0].state.current).toBe("b");
+  expect(result.current[0].current).toBe("b");
   expect(result.current[0].context.prop).toBe("asd");
   expect(value.current).toBe("new value");
 });
 
 test("tuple from function based transition with side-effect", () => {
   type TestMachine = Machine<
-    { prop: string },
     {
       a: State<{ event: Event }>;
       b: State;
-    }
+    },
+    { prop: string }
   >;
 
   const value = { current: "test" };
@@ -249,7 +254,7 @@ test("tuple from function based transition with side-effect", () => {
     useMachine<TestMachine>(
       {
         a: {
-          event: ({ context }) => [
+          event: context => [
             () => void (value.current = "new value"),
             {
               state: "b",
@@ -267,14 +272,13 @@ test("tuple from function based transition with side-effect", () => {
     result.current[1].event();
   });
 
-  expect(result.current[0].state.current).toBe("b");
+  expect(result.current[0].current).toBe("b");
   expect(result.current[0].context.prop).toBe("test");
   expect(value.current).toBe("new value");
 });
 
 test("simple counter example", () => {
   type CounterMachine = Machine<
-    { count: number },
     {
       counting: State<{
         increment: Event;
@@ -283,26 +287,24 @@ test("simple counter example", () => {
       maxedOut: State<{
         reset: Event;
       }>;
-    }
+    },
+    { count: number }
   >;
 
   const { result } = renderHook(() =>
     useMachine<CounterMachine>(
       {
         counting: {
-          increment: ({ state, context }) =>
+          increment: context =>
             context.count < 7
               ? {
-                  state,
+                  // hvorfor krever denne at state blir satt eksplisitt?
                   context: {
                     count: context.count + 1,
                   },
                 }
-              : {
-                  state: "maxedOut",
-                  context,
-                },
-          decrement: ({ state, context }) => ({
+              : "maxedOut",
+          decrement: context => ({
             state,
             context: {
               ...context,
@@ -347,12 +349,12 @@ test("simple counter example", () => {
   });
 
   expect(result.current[0].context.count).toBe(7);
-  expect(result.current[0].state.current).toBe("maxedOut");
+  expect(result.current[0].current).toBe("maxedOut");
 
   act(() => {
     result.current[1].reset();
   });
 
   expect(result.current[0].context.count).toBe(0);
-  expect(result.current[0].state.current).toBe("counting");
+  expect(result.current[0].current).toBe("counting");
 });
