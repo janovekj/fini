@@ -1,25 +1,16 @@
 import { useEffectReducer, EffectReducer } from "use-effect-reducer";
 
+const dev = {
+  warn: (...args: Parameters<typeof console.warn>) =>
+    __DEV__ && console.warn(args),
+  error: (...args: Parameters<typeof console.warn>) =>
+    __DEV__ && console.error(args),
+};
+
 type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
 type XOR<T, U> = T | U extends object
   ? (Without<T, U> & U) | (Without<U, T> & T)
   : T | U;
-
-type Values<T extends {}> = T[keyof T];
-type Tuplize<T extends {}[]> = Pick<
-  T,
-  Exclude<keyof T, Extract<keyof {}[], string> | number>
->;
-type _OneOf<T extends {}> = Values<
-  {
-    [K in keyof T]: T[K] &
-      {
-        [M in Values<{ [L in keyof Omit<T, K>]: keyof T[L] }>]?: undefined;
-      };
-  }
->;
-
-type OneOf<T extends {}[]> = _OneOf<Tuplize<T>>;
 
 const isFunction = (arg: any): arg is Function => typeof arg === "function";
 
@@ -118,7 +109,7 @@ type ReducerState<S extends StateMap> = {
 /** The resulting state after a transition */
 type NextState<S extends StateMap, Current extends keyof S> =
   | CompatibleContextStates<S, Current>
-  | OneOf<[SelfNextStateObject<S, Current>, NextStateObject<S>]>;
+  | XOR<SelfNextStateObject<S, Current>, NextStateObject<S>>;
 
 type CleanupFunction = () => void;
 type EffectFunction = () => void | CleanupFunction;
@@ -203,25 +194,21 @@ const parseInitialState = <S extends StateMap>(
         context: {},
       };
     } else {
-      if (__DEV__) {
-        console.error(
-          `State '${initialState}' does not exist in schema: ${JSON.stringify(
-            schema
-          )}`
-        );
-      }
+      dev.error(
+        `State '${initialState}' does not exist in schema: ${JSON.stringify(
+          schema
+        )}`
+      );
     }
   } else if (isObject(initialState)) {
     if (initialState.state in schema) {
       return initialState;
     } else {
-      if (__DEV__) {
-        console.error(
-          `State '${
-            initialState.state
-          }' does not exist in schema: ${JSON.stringify(schema)}`
-        );
-      }
+      dev.error(
+        `State '${
+          initialState.state
+        }' does not exist in schema: ${JSON.stringify(schema)}`
+      );
     }
   }
   return;
@@ -238,9 +225,7 @@ export const useMachine = <S extends StateMap>(
   ) => {
     // @ts-expect-error
     if (!state.state in schema) {
-      if (__DEV__) {
-        console.error(`State '${state.state}' does not exist in schema`);
-      }
+      dev.error(`State '${state.state}' does not exist in schema`);
       return state;
     }
 
@@ -249,20 +234,20 @@ export const useMachine = <S extends StateMap>(
     const eventHandler = currentNode[event.type];
 
     if (!eventHandler) {
-      if (__DEV__) {
-        console.warn(
-          `Event handler for '${event.type}' does not exist in state '${state.state}'`
-        );
-      }
+      dev.warn(
+        `Event handler for '${event.type}' does not exist in state '${state.state}'`
+      );
 
       return state;
     }
 
-    const handleEffectStateTuple = (
-      result: EffectNextStateTuple<S, typeof state["state"]>
-    ) => {
-      if (result.length === 2) {
-        const [effect, newState] = result;
+    const update = isFunction(eventHandler)
+      ? eventHandler(state.context, event?.payload)
+      : eventHandler;
+
+    if (Array.isArray(update)) {
+      if (update.length === 2) {
+        const [effect, newState] = update;
         exec(effect);
 
         return "state" in newState
@@ -272,18 +257,10 @@ export const useMachine = <S extends StateMap>(
               context: newState,
             };
       } else {
-        const [effect] = result;
+        const [effect] = update;
         exec(effect);
         return state;
       }
-    };
-
-    const update = isFunction(eventHandler)
-      ? eventHandler(state.context, event?.payload)
-      : eventHandler;
-
-    if (Array.isArray(update)) {
-      return handleEffectStateTuple(update);
     } else if (isObject(update)) {
       // somethings wrong
       return "state" in update
@@ -298,9 +275,7 @@ export const useMachine = <S extends StateMap>(
         context: state.context,
       };
     } else {
-      if (__DEV__) {
-        console.error(`unknown type of EventNode`, update);
-      }
+      dev.error(`unknown type of EventNode`, update);
     }
     return state;
   };
