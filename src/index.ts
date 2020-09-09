@@ -1,5 +1,26 @@
 import { useEffectReducer, EffectReducer } from "use-effect-reducer";
 
+type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
+type XOR<T, U> = T | U extends object
+  ? (Without<T, U> & U) | (Without<U, T> & T)
+  : T | U;
+
+type Values<T extends {}> = T[keyof T];
+type Tuplize<T extends {}[]> = Pick<
+  T,
+  Exclude<keyof T, Extract<keyof {}[], string> | number>
+>;
+type _OneOf<T extends {}> = Values<
+  {
+    [K in keyof T]: T[K] &
+      {
+        [M in Values<{ [L in keyof Omit<T, K>]: keyof T[L] }>]?: undefined;
+      };
+  }
+>;
+
+type OneOf<T extends {}[]> = _OneOf<Tuplize<T>>;
+
 const isFunction = (arg: any): arg is Function => typeof arg === "function";
 
 const isObject = (arg: any): arg is object => typeof arg === "object";
@@ -94,34 +115,13 @@ type ReducerState<S extends StateMap> = {
   };
 }[keyof S];
 
-type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
-type XOR<T, U> = T | U extends object
-  ? (Without<T, U> & U) | (Without<U, T> & T)
-  : T | U;
-
-type Values<T extends {}> = T[keyof T];
-type Tuplize<T extends {}[]> = Pick<
-  T,
-  Exclude<keyof T, Extract<keyof {}[], string> | number>
->;
-type _OneOf<T extends {}> = Values<
-  {
-    [K in keyof T]: T[K] &
-      {
-        [M in Values<{ [L in keyof Omit<T, K>]: keyof T[L] }>]?: undefined;
-      };
-  }
->;
-
-type OneOf<T extends {}[]> = _OneOf<Tuplize<T>>;
-
-type CleanupFunction = () => void;
-type EffectFunction = () => void | CleanupFunction;
-
 /** The resulting state after a transition */
 type NextState<S extends StateMap, Current extends keyof S> =
   | CompatibleContextStates<S, Current>
   | OneOf<[SelfNextStateObject<S, Current>, NextStateObject<S>]>;
+
+type CleanupFunction = () => void;
+type EffectFunction = () => void | CleanupFunction;
 
 /** A tuple of either just an effect,
  * or an effect and the next state for the transition */
@@ -175,7 +175,7 @@ type Dispatcher<S extends StateMap> = UnionToIntersection<
   }[keyof S]
 >;
 
-type Current<S extends StateMap> = {
+type CurrentState<S extends StateMap> = {
   [K in keyof S]: {
     current: K;
     context: S[K]["context"];
@@ -243,7 +243,6 @@ export const useMachine = <S extends StateMap>(
       }
       return state;
     }
-    console.log("lol");
 
     const currentNode = schema[state.state];
 
@@ -265,7 +264,13 @@ export const useMachine = <S extends StateMap>(
       if (result.length === 2) {
         const [effect, newState] = result;
         exec(effect);
-        return newState;
+
+        return "state" in newState
+          ? newState
+          : {
+              state: state.state,
+              context: newState,
+            };
       } else {
         const [effect] = result;
         exec(effect);
@@ -273,28 +278,28 @@ export const useMachine = <S extends StateMap>(
       }
     };
 
-    if (isFunction(eventHandler)) {
-      // @ts-ignore
-      const transition = eventHandler(state, event?.payload);
-      if (Array.isArray(transition)) {
-        // @ts-ignore: TS doesn't understand that we're type safe here (are we?)
-        return handleEffectStateTuple(transition);
-      } else {
-        return transition;
-      }
-    } else if (Array.isArray(eventHandler)) {
-      // @ts-ignore: TS doesn't understand that we're type safe here (are we?)
-      return handleEffectStateTuple(eventHandler);
-    } else if (isObject(eventHandler)) {
-      return eventHandler;
-    } else if (typeof eventHandler === "string" && eventHandler in schema) {
+    const update = isFunction(eventHandler)
+      ? eventHandler(state.context, event?.payload)
+      : eventHandler;
+
+    if (Array.isArray(update)) {
+      return handleEffectStateTuple(update);
+    } else if (isObject(update)) {
+      // somethings wrong
+      return "state" in update
+        ? update
+        : {
+            state: state.state,
+            context: update,
+          };
+    } else if (typeof update === "string" && update in schema) {
       return {
-        state: eventHandler,
+        state: update,
         context: state.context,
       };
     } else {
       if (__DEV__) {
-        console.error(`unknown type of EventNode`, eventHandler);
+        console.error(`unknown type of EventNode`, update);
       }
     }
     return state;
@@ -307,7 +312,7 @@ export const useMachine = <S extends StateMap>(
 
   const [reducerState, dispatch] = useEffectReducer(reducer, initial);
 
-  const state: Current<S> = {
+  const state: CurrentState<S> = {
     current: reducerState.state,
     ...Object.assign(
       {},
