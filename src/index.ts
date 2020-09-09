@@ -83,13 +83,13 @@ type CompatibleContextStates<S extends StateMap, Current extends keyof S> = {
 
 /** Transition result where the state is the same,
  * and doesn't have to be explicitly defined */
-type SelfNextStateObject<
+type ContextUpdate<
   S extends StateMap,
   Current extends keyof S
 > = S[Current]["context"];
 
 /** Object describing the next state (and context, if required) for a transition */
-type NextStateObject<S extends StateMap> = {
+type UpdateObject<S extends StateMap> = {
   [K in keyof S]: {
     state: K;
   } & ({} extends S[K]["context"] // optional context if weak type
@@ -107,9 +107,9 @@ type ReducerState<S extends StateMap> = {
 }[keyof S];
 
 /** The resulting state after a transition */
-type NextState<S extends StateMap, Current extends keyof S> =
+type Update<S extends StateMap, Current extends keyof S> =
   | CompatibleContextStates<S, Current>
-  | XOR<SelfNextStateObject<S, Current>, NextStateObject<S>>;
+  | XOR<ContextUpdate<S, Current>, UpdateObject<S>>;
 
 type CleanupFunction = () => void;
 type EffectFunction = () => void | CleanupFunction;
@@ -118,11 +118,11 @@ type EffectFunction = () => void | CleanupFunction;
  * or an effect and the next state for the transition */
 type EffectNextStateTuple<S extends StateMap, Current extends keyof S> =
   | [EffectFunction]
-  | [EffectFunction, NextState<S, Current>];
+  | [EffectFunction, Update<S, Current>];
 
 /** The result of a transition */
 type Transition<S extends StateMap, Current extends keyof S> =
-  | NextState<S, Current>
+  | Update<S, Current>
   | EffectNextStateTuple<S, Current>;
 
 /** Reacts to an event and describes the next state and any side-effects */
@@ -181,7 +181,7 @@ type OptionalContextStates<S extends StateMap> = {
 
 type InitialState<S extends StateMap> =
   | OptionalContextStates<S>
-  | NextStateObject<S>;
+  | UpdateObject<S>;
 
 const parseInitialState = <S extends StateMap>(
   schema: Schema<S>,
