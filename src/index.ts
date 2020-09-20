@@ -45,31 +45,8 @@ type MachineState<BaseContext, S extends State> = {
 
 export type Event<Payload extends EventPayload = null> = Payload;
 
-/** Helper type for defining machine types. 
- * 
- * Use the first type argument to provide your states and events.
- * 
- * Use the second type argument to provide the base machine context, 
- * i.e. the narrowest common data for all states
- 
- Example:
- ```typescript
-type MyMachine = Machine<
-  {
-    idle: State<{
-      edit: Event;
-    }>;
-    editing: State<
-      {
-        change: Event<{ newValue: string }>;
-      },
-      { value: string }
-    >;
-  },
-  { value?: string }
->;
-```
- */
+// TODO: make a union of all the state contexts,
+// so everything will appear in intellisense if not narrowed by typeguards
 export type Machine<
   S extends StateMap,
   BaseContext extends ContextType = {}
@@ -112,29 +89,43 @@ type Update<S extends StateMap, Current extends keyof S> =
   | XOR<ContextUpdate<S, Current>, UpdateObject<S>>;
 
 type CleanupFunction = () => void;
-type EffectFunction = () => void | CleanupFunction;
-
-/** A tuple of either just an effect,
- * or an effect and the next state for the transition */
-type EffectNextStateTuple<S extends StateMap, Current extends keyof S> =
-  | [EffectFunction]
-  | [EffectFunction, Update<S, Current>];
+type EffectFunction<S extends StateMap> = (
+  dispatcher: Dispatcher<S>
+) => void | CleanupFunction;
 
 /** The result of a transition */
-type Transition<S extends StateMap, Current extends keyof S> =
-  | Update<S, Current>
-  | EffectNextStateTuple<S, Current>;
+type Transition<S extends StateMap, Current extends keyof S> = Update<
+  S,
+  Current
+>;
+
+type CreateTransitionFnMachineObject<
+  S extends StateMap,
+  Current extends keyof S
+> = {
+  context: S[Current]["context"];
+  exec: (effect: EffectFunction<S>) => void;
+};
+
+type CreateTranstionFn<
+  S extends StateMap,
+  Current extends keyof S,
+  P extends EventPayload
+> = P extends {}
+  ? (
+      machine: CreateTransitionFnMachineObject<S, Current>,
+      payload: P
+    ) => Transition<S, Current>
+  : (
+      machine: CreateTransitionFnMachineObject<S, Current>
+    ) => Transition<S, Current>;
 
 /** Reacts to an event and describes the next state and any side-effects */
 type EventHandler<
   S extends StateMap,
   Current extends keyof S,
   P extends EventPayload
-> =
-  | Transition<S, Current>
-  | (P extends {}
-      ? (context: S[Current]["context"], payload: P) => Transition<S, Current>
-      : (context: S[Current]["context"]) => Transition<S, Current>);
+> = Transition<S, Current> | CreateTranstionFn<S, Current, P>;
 
 type Schema<S extends StateMap> = {
   [K in keyof S]: {
@@ -218,6 +209,16 @@ export const useMachine = <S extends StateMap>(
   schema: Schema<S>,
   initialState: InitialState<S>
 ) => {
+  const events = Array.from(
+    new Set(Object.values(schema).flatMap(Object.keys))
+  );
+  const dispatcher = Object.assign(
+    {},
+    ...events.map(event => ({
+      [event]: (payload: unknown) => dispatch({ type: event, payload }),
+    }))
+  ) as Dispatcher<S>;
+
   const reducer: EffectReducer<ReducerState<S>, EventObject<S>> = (
     state,
     event,
@@ -241,27 +242,19 @@ export const useMachine = <S extends StateMap>(
       return state;
     }
 
-    const update = isFunction(eventHandler)
-      ? eventHandler(state.context, event?.payload)
+    const customExec = (effect: EffectFunction<S>) =>
+      exec(() => effect(dispatcher));
+
+    const transition = isFunction(eventHandler)
+      ? eventHandler(
+          { context: state.context, exec: customExec },
+          event?.payload
+        )
       : eventHandler;
 
-    if (Array.isArray(update)) {
-      if (update.length === 2) {
-        const [effect, newState] = update;
-        exec(effect);
+    const update = transition;
 
-        return "state" in newState
-          ? newState
-          : {
-              state: state.state,
-              context: newState,
-            };
-      } else {
-        const [effect] = update;
-        exec(effect);
-        return state;
-      }
-    } else if (isObject(update)) {
+    if (isObject(update)) {
       // somethings wrong
       return "state" in update
         ? update
@@ -295,16 +288,6 @@ export const useMachine = <S extends StateMap>(
     ),
     context: reducerState.context ?? {},
   };
-
-  const events = Array.from(
-    new Set(Object.values(schema).flatMap(Object.keys))
-  );
-  const dispatcher = Object.assign(
-    {},
-    ...events.map(event => ({
-      [event]: (payload: unknown) => dispatch({ type: event, payload }),
-    }))
-  ) as Dispatcher<S>;
 
   return [state, dispatcher] as const;
 };
