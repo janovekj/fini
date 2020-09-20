@@ -219,12 +219,13 @@ export const useMachine = <S extends StateMap>(
     }))
   ) as Dispatcher<S>;
 
+  // @ts-ignore
   const reducer: EffectReducer<ReducerState<S>, EventObject<S>> = (
     state,
     event,
     exec
   ) => {
-    // @ts-expect-error
+    // @ts-ignore
     if (!state.state in schema) {
       dev.error(`State '${state.state}' does not exist in schema`);
       return state;
@@ -246,8 +247,10 @@ export const useMachine = <S extends StateMap>(
       exec(() => effect(dispatcher));
 
     const transition = isFunction(eventHandler)
-      ? eventHandler(
+      ? // @ts-ignore
+        eventHandler(
           { context: state.context, exec: customExec },
+          // @ts-ignore
           event?.payload
         )
       : eventHandler;
@@ -255,7 +258,6 @@ export const useMachine = <S extends StateMap>(
     const update = transition;
 
     if (isObject(update)) {
-      // somethings wrong
       return "state" in update
         ? update
         : {
@@ -278,6 +280,7 @@ export const useMachine = <S extends StateMap>(
     initialState
   ) as unknown) as ReducerState<S>;
 
+  // @ts-ignore
   const [reducerState, dispatch] = useEffectReducer(reducer, initial);
 
   const state: CurrentState<S> = {
