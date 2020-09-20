@@ -24,7 +24,7 @@
     "lint": "tsdx lint",
     "prepare": "tsdx build",
     "doctoc": "doctoc README.md",
-    "release": "np"
+    "release": "np --no-cleanup"
   },
   "peerDependencies": {
     "react": "^16.9.0"
