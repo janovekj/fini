@@ -4,7 +4,7 @@ Fini is a small state machine library built on top of the brilliant [use-effect-
 
 # Motivation
 
-Fini aims to be a simpler alternative to fully-fledged statechart libraries, such as [XState](). It aims to capture the features I find myself using most of the time, with type-safety and simplicity in mind.
+Fini aims to be a simpler alternative to fully-fledged statechart libraries, such as [XState](https://xstate.js.org). It aims to capture the features I find myself using most of the time, with type-safety and simplicity in mind.
 
 You might like Fini if you
 
