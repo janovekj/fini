@@ -2,7 +2,7 @@
 
 [![npm version](http://img.shields.io/npm/v/fini.svg?style=flat)](https://npmjs.org/package/fini "View this project on npm") [![GitHub license](https://img.shields.io/github/license/janovekj/fini)](https://github.com/janovekj/fini/blob/master/LICENSE "MIT license")
 
-Fini is a small state machine library built on top of the brilliant [use-effect-reducer](https://github.com/davidkpiano/useEffectReducer/).
+Fini is a small state machine library for React, built on top of the brilliant [use-effect-reducer](https://github.com/davidkpiano/useEffectReducer/).
 
 # Motivation
 
@@ -14,13 +14,20 @@ You might like Fini if you
 - enjoy typing 😉
 - want to get into basic state machines
 
-# Get started
+# Features
+
+- A plain old finite state machine hook
+- Type-safe all the way with state-specific context types (typestates)
+- Simple schema definition
+- Dispatcher with events predefined - no action objects needed
+
+# Quick start
 
 ```bash
 npm install fini
 ```
 
-# Simple counter example
+Simple counter example ([Codesandbox](https://codesandbox.io/s/fini-counter-example-ul43u?file=/src/App.tsx))
 
 ```tsx
 import * as React from "react";
@@ -82,5 +89,3 @@ export default function App() {
   );
 }
 ```
-
-[Live Codesandbox](https://codesandbox.io/s/fini-counter-example-ul43u?file=/src/App.tsx)
