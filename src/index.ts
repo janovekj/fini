@@ -48,7 +48,7 @@ export type Event<Payload extends EventPayload = null> = Payload;
 // TODO: make a union of all the state contexts,
 // so everything will appear in intellisense if not narrowed by typeguards
 export type Machine<
-  S extends StateMap,
+  S extends StateMap = {},
   BaseContext extends ContextType = {}
 > = {
   [K in keyof S]: MachineState<BaseContext, S[K]>;
