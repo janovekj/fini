@@ -9,6 +9,8 @@
     "hook",
     "typescript"
   ],
+  "repository": "janovekj/fini",
+  "homepage": "https://github.com/janovekj/fini#README",
   "typings": "dist/index.d.ts",
   "files": [
     "dist",
