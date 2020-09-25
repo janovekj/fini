@@ -1,8 +1,8 @@
 # Fini
 
-[![npm version](http://img.shields.io/npm/v/fini.svg?style=flat)](https://npmjs.org/package/fini "View this project on npm") [![GitHub license](https://img.shields.io/github/license/janovekj/fini)](https://github.com/janovekj/fini/blob/master/LICENSE "MIT license")
+Small state machine library for React, built on top of the brilliant [use-effect-reducer](https://github.com/davidkpiano/useEffectReducer/).
 
-Fini is a small state machine library for React, built on top of the brilliant [use-effect-reducer](https://github.com/davidkpiano/useEffectReducer/).
+[![npm version](http://img.shields.io/npm/v/fini.svg?style=flat)](https://npmjs.org/package/fini "View this project on npm") [![GitHub license](https://img.shields.io/github/license/janovekj/fini)](https://github.com/janovekj/fini/blob/master/LICENSE "MIT license")
 
 # Motivation
 
