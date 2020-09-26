@@ -7,15 +7,10 @@ Small state machine library for React, built on top of the brilliant [use-effect
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-- [Fini](#fini)
 - [Motivation](#motivation)
 - [Features](#features)
 - [Quick start](#quick-start)
 - [In-depth tutorial](#in-depth-tutorial)
-  - [Defining the schema](#defining-the-schema)
-  - [Implementing a basic machine](#implementing-a-basic-machine)
-  - [States and side-effects](#states-and-side-effects)
-  - [Finished result](#finished-result)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
