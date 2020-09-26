@@ -4,6 +4,21 @@ Small state machine library for React, built on top of the brilliant [use-effect
 
 [![npm version](http://img.shields.io/npm/v/fini.svg?style=flat)](https://npmjs.org/package/fini "View this project on npm") [![GitHub license](https://img.shields.io/github/license/janovekj/fini)](https://github.com/janovekj/fini/blob/master/LICENSE "MIT license")
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Fini](#fini)
+- [Motivation](#motivation)
+- [Features](#features)
+- [Quick start](#quick-start)
+- [In-depth tutorial](#in-depth-tutorial)
+  - [Defining the schema](#defining-the-schema)
+  - [Implementing a basic machine](#implementing-a-basic-machine)
+  - [States and side-effects](#states-and-side-effects)
+  - [Finished result](#finished-result)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # Motivation
 
 Fini aims to be a simpler alternative to fully-fledged statechart libraries, such as [XState](https://xstate.js.org). It aims to capture the features I find myself using most of the time, with type-safety and simplicity in mind.
@@ -568,6 +583,8 @@ const LoginComponent = () => {
   );
 };
 ```
+
+## Finished result
 
 Finally, the component in its entirety ([CodeSandbox](https://codesandbox.io/s/fini-loginmachine-4ut16)):
 
