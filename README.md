@@ -40,7 +40,7 @@ type CounterMachine = Machine<{
   counting: State<
     {
       incremented: Event;
-      set: Event<{ count: number }>;
+      set: Event<number>;
     },
     { count: number }
   >;
@@ -63,7 +63,7 @@ export default function App() {
           ...context,
           count: context.count + 1,
         }),
-        set: (_, { count }) => ({
+        set: (_, count) => ({
           count,
         }),
       },
@@ -80,9 +80,7 @@ export default function App() {
         <div>
           <p>{`Count: ${state.context.count}`}</p>
           <button onClick={dispatch.incremented}>Increment</button>
-          <button onClick={() => dispatch.set({ count: 100 })}>
-            Set to 100
-          </button>
+          <button onClick={() => dispatch.set(100)}>Set to 100</button>
         </div>
       )}
     </div>
