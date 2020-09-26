@@ -18,7 +18,6 @@ const isObject = (arg: any): arg is object => typeof arg === "object";
 
 type Override<T1, T2> = Omit<T1, keyof T2> & T2;
 
-type EventPayload = Record<string, any>;
 type EventMapType = Record<string, any>;
 
 type ContextType = Record<string, any>;
@@ -42,8 +41,6 @@ type MachineState<BaseContext, S extends State> = {
   on: S["on"];
   context: ApplyBaseContext<BaseContext, S["context"]>;
 };
-
-export type Event<Payload extends any = never> = Payload;
 
 // TODO: make a union of all the state contexts,
 // so everything will appear in intellisense if not narrowed by typeguards
@@ -110,7 +107,7 @@ type CreateTransitionFnMachineObject<
 type CreateTranstionFn<
   S extends StateMap,
   Current extends keyof S,
-  P extends EventPayload
+  P extends any
 > = [P] extends [never]
   ? (
       machine: CreateTransitionFnMachineObject<S, Current>
@@ -121,11 +118,9 @@ type CreateTranstionFn<
     ) => Transition<S, Current>;
 
 /** Reacts to an event and describes the next state and any side-effects */
-type EventHandler<
-  S extends StateMap,
-  Current extends keyof S,
-  P extends EventPayload
-> = Transition<S, Current> | CreateTranstionFn<S, Current, P>;
+type EventHandler<S extends StateMap, Current extends keyof S, P extends any> =
+  | Transition<S, Current>
+  | CreateTranstionFn<S, Current, P>;
 
 type Schema<S extends StateMap> = {
   [K in keyof S]: {

@@ -1,5 +1,5 @@
 import { renderHook, act } from "@testing-library/react-hooks";
-import { useMachine, Machine, State, Event } from "./index";
+import { useMachine, Machine, State } from "./index";
 
 test("various transitions", () => {
   const something = { value: "foo" };
@@ -11,12 +11,12 @@ test("various transitions", () => {
   type TestMachine = Machine<
     {
       idle: State<{
-        focus: Event;
+        focus: never;
       }>;
       editing: State<
         {
-          change: Event<{ value: string }>;
-          submit: Event<{ isValid: boolean }>;
+          change: string;
+          submit: boolean;
         },
         { value: string }
       >;
@@ -42,14 +42,14 @@ test("various transitions", () => {
           },
         },
         editing: {
-          change: ({ context, exec }, { value }) => {
+          change: ({ context, exec }, value) => {
             exec(() => void (something.value = value));
             return {
               ...context,
               value,
             };
           },
-          submit: (_, { isValid }) => ({
+          submit: (_, isValid) => ({
             state: "submitted",
             context: {
               id: "loool",
@@ -77,7 +77,7 @@ test("various transitions", () => {
   expect(result.current[0].editing).toBeTruthy();
 
   act(() => {
-    result.current[1].change({ value: "lol" });
+    result.current[1].change("lol");
   });
 
   expect(something.value).toBe("lol");
@@ -128,7 +128,7 @@ test("string based transition", () => {
     {
       a: State<
         {
-          event: Event;
+          event: never;
         },
         { prop2: string }
       >;
@@ -161,7 +161,7 @@ test("function based transition with value", () => {
   type TestMachine = Machine<
     {
       a: State<{
-        event: Event<{ newValue: string }>;
+        event: string;
       }>;
       b: State;
     },
@@ -172,7 +172,7 @@ test("function based transition with value", () => {
     useMachine<TestMachine>(
       {
         a: {
-          event: (context, { newValue }) => ({
+          event: (context, newValue) => ({
             state: "b",
             context: {
               ...context,
@@ -187,7 +187,7 @@ test("function based transition with value", () => {
   );
 
   act(() => {
-    result.current[1].event({ newValue: "new value" });
+    result.current[1].event("new value");
   });
 
   expect(result.current[0].current).toBe("b");
@@ -198,7 +198,7 @@ test("tuple based transition with side-effect", () => {
   type TestMachine = Machine<
     {
       a: State<{
-        event: Event;
+        event: never;
       }>;
       b: State;
     },
@@ -238,7 +238,7 @@ test("tuple based transition with side-effect", () => {
 test("tuple from function based transition with side-effect", () => {
   type TestMachine = Machine<
     {
-      a: State<{ event: Event }>;
+      a: State<{ event: never }>;
       b: State;
     },
     { prop: string }
@@ -277,11 +277,11 @@ test("simple counter example", () => {
   type CounterMachine = Machine<
     {
       counting: State<{
-        increment: Event;
-        decrement: Event;
+        increment: never;
+        decrement: never;
       }>;
       maxedOut: State<{
-        reset: Event;
+        reset: never;
       }>;
     },
     { count: number }
@@ -357,18 +357,18 @@ test("async thing", async () => {
 
   type FetcherMachine = Machine<{
     initial: State<{
-      fetch: Event<{ id: string }>;
+      fetch: string;
     }>;
     fetching: State<
       {
-        succeeded: Event<{ user: User }>;
-        failed: Event<{ error: string }>;
+        succeeded: User;
+        failed: string;
       },
       { params: { id: string } }
     >;
     success: State<
       {
-        refetch: Event;
+        refetch: never;
       },
       {
         params: { id: string };
@@ -389,11 +389,11 @@ test("async thing", async () => {
     const [state, dispatch] = useMachine<FetcherMachine>(
       {
         initial: {
-          fetch: ({ exec }, { id }) => {
+          fetch: ({ exec }, id) => {
             exec(
               () =>
                 void fetchUser(id).then(user => {
-                  dispatch.succeeded({ user });
+                  dispatch.succeeded(user);
                 })
             );
             return {
@@ -407,7 +407,7 @@ test("async thing", async () => {
           },
         },
         fetching: {
-          succeeded: ({ context }, { user }) => ({
+          succeeded: ({ context }, user) => ({
             state: "success",
             context: {
               ...context,
@@ -427,7 +427,7 @@ test("async thing", async () => {
             exec(
               () =>
                 void fetchUser(context.params.id).then(user => {
-                  dispatch.succeeded({ user });
+                  dispatch.succeeded(user);
                 })
             );
             return {
@@ -445,7 +445,7 @@ test("async thing", async () => {
   });
 
   act(() => {
-    result.current[1].fetch({ id: "test" });
+    result.current[1].fetch("test");
   });
 
   expect(result.current[0].current).toBe("fetching");
@@ -479,12 +479,12 @@ test("login machine", async () => {
     initial: State<{
       // Specify an event handler with the `Event` helper type,
       // which accepts a type argument for the event payload
-      login: Event<LoginParams>;
+      login: LoginParams;
     }>;
     fetching: State<
       {
-        succeeded: Event<{ user: User }>;
-        failed: Event<{ error: string }>;
+        succeeded: User;
+        failed: string;
       },
       // Add state-specific context data. TypeScript will only let you
       // access `context.params` while in the `fetching` state
@@ -493,7 +493,7 @@ test("login machine", async () => {
     >;
     loggedIn: State<
       {
-        logout: Event;
+        logout: never;
       },
       {
         params: LoginParams;
@@ -502,7 +502,7 @@ test("login machine", async () => {
     >;
     error: State<
       {
-        retry: Event;
+        retry: never;
       },
       { error: string; params: LoginParams }
     >;
@@ -539,8 +539,8 @@ test("login machine", async () => {
             // Prepare the login function which will be executed upon state change
             exec(dispatch => {
               login({ email, password })
-                .then(user => dispatch.succeeded({ user }))
-                .catch(error => dispatch.failed({ error }));
+                .then(user => dispatch.succeeded(user))
+                .catch(error => dispatch.failed(error));
             });
 
             // Return the new state, with the new context
@@ -557,14 +557,14 @@ test("login machine", async () => {
         },
         // Rinse and repeat
         fetching: {
-          succeeded: ({ context }, { user }) => ({
+          succeeded: ({ context }, user) => ({
             state: "loggedIn",
             context: {
               ...context,
               user,
             },
           }),
-          failed: ({ context, exec }, { error }) => {
+          failed: ({ context, exec }, error) => {
             exec(() => console.error("Something bad happened!"));
             return {
               state: "error",
@@ -582,8 +582,8 @@ test("login machine", async () => {
           retry: ({ context, exec }) => {
             exec(dispatch => {
               login(context.params)
-                .then(user => dispatch.succeeded({ user }))
-                .catch(error => dispatch.failed({ error }));
+                .then(user => dispatch.succeeded(user))
+                .catch(error => dispatch.failed(error));
             });
             return "fetching";
           },

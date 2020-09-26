@@ -41,16 +41,16 @@ Simple counter example ([Codesandbox](https://codesandbox.io/s/fini-counter-exam
 
 ```tsx
 import * as React from "react";
-import { useMachine, Machine, State, Event } from "fini";
+import { useMachine, Machine, State } from "fini";
 
 type CounterMachine = Machine<{
   idle: State<{
-    started: Event;
+    started: never;
   }>;
   counting: State<
     {
-      incremented: Event;
-      set: Event<number>;
+      incremented: never;
+      set: number;
     },
     { count: number }
   >;
@@ -126,37 +126,29 @@ type LoginMachine = Machine<{
 
 As you can see, `Machine` accepts a type argument: an object type where we can define our states.
 
-The `State` type also accepts a type argument like this, but instead it is for the events it should handle. Let's add one!
+The `State` type also accepts a type argument like this, but instead it's a map for the events it should handle. Let's add one!
 
 ```tsx
-import { Machine, State, Event } from "fini";
+import { Machine, State } from "fini";
 
 type LoginMachine = Machine<{
   input: State<{
-    emailChanged: Event;
+    emailChanged: string;
   }>;
 }>;
 ```
 
-And guess what, `Event` also accepts a type. Often you'll want to send some data with an event, and that's exactly what you can specify for `Event`. In our case, we're passing along a `string`:
+Each event name is mapped to a corresponding _payload type_. This refers to the data that we might want to pass along with the event. In our case, we're sending an email, which is a `string`, and `emailChanged` is typed accordingly.
 
-```tsx
-type LoginMachine = Machine<{
-  input: State<{
-    emailChanged: Event<string>;
-  }>;
-}>;
-```
-
-If you're coming from Redux, it's pretty much the exact same as the concept of payloads in action objects (because it _is_ an action object - Fini just calls them events instead).
+If you're coming from Redux, it's pretty much the exact same as the concept of payloads in action objects (because behind the scenes, this _is_ an action object - Fini just calls them events instead).
 
 Anyways, we'll need an event to handle password input as well.
 
 ```tsx
 type LoginMachine = Machine<{
   input: State<{
-    emailChanged: Event<string>;
-    passwordChanged: Event<string>;
+    emailChanged: string;
+    passwordChanged: string;
   }>;
 }>;
 ```
@@ -170,8 +162,8 @@ We can define such a context in two ways:
 type LoginMachine = Machine<{
   input: State<
     {
-      emailChanged: Event<string>;
-      passwordChanged: Event<string>;
+      emailChanged: string;
+      passwordChanged: string;
     },
     // Defined inside the `State`
     { email: string; password: string }
@@ -185,8 +177,8 @@ type LoginMachine = Machine<{
 type LoginMachine = Machine<
   {
     input: State<{
-      emailChanged: Event<string>;
-      passwordChanged: Event<string>;
+      emailChanged: string;
+      passwordChanged: string;
     }>;
   },
   // Defined inside the `Machine`
@@ -205,13 +197,13 @@ To put everything we have covered so far into context, let's actually just start
 We'll import the `useMachine` hook, and give it `LoginMachine` as a type argument, and an empty object which we'll expand shortly:
 
 ```tsx
-import { Machine, State, Event, useMachine } from "fini";
+import { Machine, State, useMachine } from "fini";
 
 type LoginMachine = Machine<
   {
     input: State<{
-      emailChanged: Event<string>;
-      passwordChanged: Event<string>;
+      emailChanged: string;
+      passwordChanged: string;
     }>;
   },
   { email: string; password: string }
@@ -267,7 +259,7 @@ const [state, dispatch] = useMachine<LoginMachine>(
 As you can see, `emailChanged` accepts a function where two parameters are provided:
 
 1. `machine` is an object containing the current context, as well as some other things that we'll cover later
-2. `payload`, which is the value being passed along with the event. It is of the same type as the one defined on `Event` in our schema
+2. `payload`, which is the value being passed along with the event. It is of the same type as the one defined on the state's event in our schema
 
 The purpose of the function is to return the next state. In our case, we're not actually going into a new state - we're only updating the context. For cases like this, Fini allows you to simply just return the updated context object directly, instead of explicitly specifying what state we're in:
 
@@ -353,19 +345,19 @@ type User = {
 type LoginMachine = Machine<
   {
     input: State<{
-      emailChanged: Event<string>;
-      passwordChanged: Event<string>;
-      submitted: Event;
+      emailChanged: string;
+      passwordChanged: string;
+      submitted: never;
     }>;
     submitting: State<{
-      succeeded: Event<User>;
+      succeeded: User;
     }>;
   },
   { email: string; password: string }
 >;
 ```
 
-Note that payload type for `submitted`'s event is needed, since `email` and `password` is already available through the machine's context.
+Note that `submitted` has a payload type of `never`! This is because it literally never accepts a payload, since `email` and `password` is already available through the machine's context.
 
 We have also added a second state. How exciting! We'll head right over to our implementation and attempt to make a transition.
 
@@ -472,15 +464,15 @@ type User = {
 type LoginMachine = Machine<
   {
     input: State<{
-      emailChanged: Event<string>;
-      passwordChanged: Event<string>;
-      submitted: Event;
+      emailChanged: string;
+      passwordChanged: string;
+      submitted: never;
     }>;
     submitting: State<{
-      succeeded: Event<User>;
+      succeeded: User;
     }>;
     loggedIn: State<{
-      loggedOut: Event
+      loggedOut: never
     }, { user: User }>
   },
   { email: string; password: string }
@@ -584,7 +576,7 @@ const LoginComponent = () => {
 Finally, the component in its entirety ([CodeSandbox](https://codesandbox.io/s/fini-loginmachine-4ut16)):
 
 ```tsx
-import { Machine, State, Event, useMachine } from "fini";
+import { Machine, State, useMachine } from "fini";
 
 type User = {
   id: string;
@@ -594,16 +586,16 @@ type User = {
 type LoginMachine = Machine<
   {
     input: State<{
-      emailChanged: Event<string>;
-      passwordChanged: Event<string>;
-      submitted: Event;
+      emailChanged: string;
+      passwordChanged: string;
+      submitted: never;
     }>;
     submitting: State<{
-      succeeded: Event<User>;
+      succeeded: User;
     }>;
     loggedIn: State<
       {
-        loggedOut: Event;
+        loggedOut: never;
       },
       { user: User }
     >;
