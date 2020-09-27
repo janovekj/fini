@@ -7,10 +7,21 @@ Small state machine library for React, built on top of the brilliant [use-effect
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+
 - [Motivation](#motivation)
 - [Features](#features)
 - [Quick start](#quick-start)
-- [In-depth tutorial](#in-depth-tutorial)
+- [Concepts](#concepts)
+  - [Schema definition](#schema-definition)
+  - [Event handlers and transitions](#event-handlers-and-transitions)
+  - [State and dispatch](#state-and-dispatch)
+  - [Summary and next steps](#summary-and-next-steps)
+- [Step-by-step tutorial](#step-by-step-tutorial)
+  - [Defining the schema](#defining-the-schema)
+  - [Implementing a basic machine](#implementing-a-basic-machine)
+  - [States and side-effects](#states-and-side-effects)
+  - [Finished result](#finished-result)
+- [Resources](#resources)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
@@ -31,6 +42,8 @@ You might like Fini if you
 - Simple schema definition
 - Dispatcher with events predefined - no action objects needed
 
+While Fini is intended to be used with TypeScript, it's perfectly fine to use it with plain JavaScript.
+
 # Quick start
 
 ```bash
@@ -43,18 +56,21 @@ Simple counter example ([Codesandbox](https://codesandbox.io/s/fini-counter-exam
 import * as React from "react";
 import { useMachine, Machine, State } from "fini";
 
-type CounterMachine = Machine<{
-  idle: State<{
-    started: never;
-  }>;
-  counting: State<
-    {
-      incremented: never;
-      set: number;
-    },
-    { count: number }
-  >;
-}>;
+type CounterMachine = Machine<
+  {
+    idle: State<{
+      started: never;
+    }>;
+    counting: State<
+      {
+        incremented: never;
+        set: number;
+      },
+      { count: number }
+    >;
+  },
+  { maxCount: number }
+>;
 
 export default function App() {
   const [state, dispatch] = useMachine<CounterMachine>(
@@ -71,14 +87,17 @@ export default function App() {
       counting: {
         incremented: ({ context }) => ({
           ...context,
-          count: context.count + 1,
+          count:
+            context.count === context.maxCount
+              ? context.count
+              : context.count + 1,
         }),
         set: (_, count) => ({
           count,
         }),
       },
     },
-    "idle"
+    { state: "idle", context: { maxCount: 120 } }
   );
 
   return (
@@ -98,9 +117,426 @@ export default function App() {
 }
 ```
 
-# In-depth tutorial
+# Concepts
 
-Creating stuff is the best way to showcase Fini's features, so let's do exactly that. We'll build a state machine to support a simple login sequence.
+Fini sticks to the core concepts that are associated with most finite state machines:
+
+- finite states (duh!)
+- transitions between states
+- extended state (context)
+- side-effects
+
+If you're new to state machines, don't worry! This documentation assumes some knowledge, but give the [Statecharts projects introduction](https://statecharts.github.io/what-is-a-state-machine.html) a quick read, and you'll be up to speed in no time!
+
+The next sections show Fini's approach to these concepts, as well as how it all works together with React and TypeScript.
+
+## Schema definition
+
+Fini aims to make it easy to work with state machines in a type-safe manner. While TypeScript is very good at inferring types automatically, this isn't always enough for some of Fini's features, and thus it is recommended to define a full schema for the machine you're building.
+
+### States and events
+
+Here is the schema for a simple counter machine:
+
+```tsx
+// Helper types for schema definitons
+import { Machine, State } from "fini";
+
+type CounterMachine = Machine<{
+  // State which supports the `started` event
+  idle: State<{
+    // Event with no payload
+    started: never;
+  }>;
+
+  // State which supports the `incremented` and `set` events
+  counting: State<{
+    incremented: never;
+    // Event which accepts a `number` payload
+    set: number;
+  }>;
+}>;
+```
+
+Let's break this down a bit. If you've worked with TypeScript in Redux or XState, you might be used to events/actions being defined as a separate type. Typically something similar to this:
+
+```tsx
+type CounterEvent =
+  | {
+      type: "started";
+    }
+  | {
+      type: "incremented";
+    }
+  | {
+      type: "set";
+      payload: number;
+    };
+```
+
+The benefit of doing it like this, is that you'll only have to define the event/action once. Instead, Fini requires you to define the event for each state that should respond to it. This has its own benefits:
+
+- TypeScript will complain if you don't implement the event handler, or if you implement it in a state that shouldn't support it
+- everything is kept within the same schema/type
+- slightly less typing if you don't have many duplicate events
+
+Note that duplicate events should be defined with the same payload type everywhere, otherwise TypeScript will get confused.
+
+### Context
+
+Fini also supports the concept of context, also known as extended state. One of the best things about Fini, is the support for _state-specific context_, or _typestate_, as the concept is more formally called. Using typestates is an easy way to ensure you never enter new states without the required data, or try to access properties that aren't defined in a given state.
+
+Contexts are defined by supplying a second type argument to the `Machine` and `State` types. Like this:
+
+```tsx
+// Helper types for schema definitons
+import { Machine, State } from "fini";
+
+type CounterMachine = Machine<
+  {
+    idle: State<{
+      started: never;
+    }>;
+    counting: State<
+      {
+        incremented: never;
+        set: number;
+      },
+      // State-specific context
+      // Only available when machine is in the `counting` state
+      { count: number }
+    >;
+  },
+  // Common context for all states
+  { maxCount: number }
+>;
+```
+
+Note: If the current state has a specific context where some properties overlap with the machine context, the state's context will override the machine context.
+
+Finally, the schema is simply provided as a type argument to the `useMachine` hook, which we'll look at in a minute.
+
+```tsx
+useMachine<CounterMachine>(...)
+```
+
+**Why all the typing?**
+
+Two key benefits can be gained with fully typed machines:
+
+1. Great Intellisense support when implementing and using the machines
+2. Compile-time errors when attempting to access invalid properties for the current state
+
+You _can_ use Fini without explicit typing, but this will likely result in some false-positive errors here and there which you'll have to ignore.
+
+## Event handlers and transitions
+
+State machines are all about responding to events and transitioning to new states. In Fini, this should feel effortless.
+
+### Changing states
+
+There's different ways to transition between states, so let's get a quick overview.
+
+```tsx
+useMachine({
+  state1: {
+    // String shorthand
+    event1: "state2",
+
+    // Update object
+    event2: {
+      state: "state2"
+    }
+
+    // String shorthand returned from event handler function
+    event3: () => "state2",
+
+    // Update object returned from event handler function
+    event4: () => ({
+      state: "state2"
+    })
+  },
+  state2: {}
+})
+```
+
+The first two methods are fine for transitions where no logic is involved, but for everything else, you'll probably want to use a function.
+
+Note: the event handler function should be [pure](https://en.wikipedia.org/wiki/Pure_function). If you need to perform side-effects, we'll talk about that in just a minute.
+
+### Updating context
+
+Handling an event will often include some changes to the context. Fini has a couple of ways to achieve this as well.
+
+```tsx
+type M = Machine<
+  {
+    state1: State<{
+      event1: never;
+      event2: never;
+      event3: never;
+      event4: never;
+    }>;
+  },
+  {
+    contextProperty: string;
+  }
+>;
+
+useMachine({
+  state1: {
+    // Context update object
+    // Current state stays the same
+    event1: {
+      contextProperty: "some value",
+    },
+
+    // Update object
+    event2: {
+      state: "state1",
+      context: {
+        contextProperty: "some value",
+      },
+    },
+
+    // Context update object returned from event handler function
+    event3: () => ({
+      contextProperty: "some value",
+    }),
+
+    // Update object returned from event handler function
+    event4: () => ({
+      state: "state1",
+      context: {
+        contextProperty: "some value",
+      },
+    }),
+  },
+});
+```
+
+This is pretty similar to how changing state works. It's worth noting that `event1` and `event3` just returns the new context directly, and since the object doesn't include a `state` property, Fini will assume that this is a context update.
+
+All event handler functions also receive the current context as a parameter:
+
+```tsx
+useMachine({
+  counting: {
+    incremented: ({ context }) => ({
+      count: context.count + 1,
+    }),
+  },
+});
+```
+
+Updates to context works the same way you normally update state in reducer functions: you have to return the entire context object, not just the properties you're updating. If the state you're transitioning to has its own context properties, you must also make sure that the returned context is compatible.
+
+### Event payloads
+
+A state machine would be quite useless if we couldn't pass along data with the events we're dispatching. If the event supports a payload, this is the second parameter passed into the event handler function:
+
+```tsx
+type CounterMachine = Machine<
+  {
+    counting: {
+      countModified: number;
+    };
+  },
+  {
+    count: number;
+  }
+>;
+
+useMachine({
+  counting: {
+    countModified: ({ context }, newCount) => ({
+      count: newCount,
+    }),
+  },
+});
+```
+
+### Executing side-effects
+
+Event handler functions should be pure, so side-effects have to be handled on Fini's terms. Luckily, this is also trivial. Alongside the `context` property, the `exec` function is also passed into the event handler function. You can use `exec` to safely fire away any and all side-effects.
+
+```tsx
+useMachine({
+  idle: {
+    loggedIn: ({ context, exec }, userId) => {
+      exec(() => {
+        fetchUser(userId).then(user => console.log(user));
+      });
+      return "fetchingUser";
+    },
+  },
+  fetchingUser: {},
+});
+```
+
+As you can see, `exec` accepts a function that triggers the side-effects. The function passed into `exec` also receives a dispatcher you can use to dispatch events from your side-effect, like in the example below:
+
+```tsx
+useMachine({
+  idle: {
+    loggedIn: ({ context, exec }, userId) => {
+      exec(dispatch => {
+        fetchUser(userId).then(user => dispatch.succeeded(user));
+      });
+      return "fetchingUser";
+    },
+  },
+  fetchingUser: {
+    succeeded: ({ context }, user) => ({
+      ...context,
+      user,
+    }),
+  },
+});
+```
+
+## State and dispatch
+
+Implementing the machine is only half the fun. Let's look at how to use the machine in your React components.
+
+The `useMachine` hook returns a tuple of the current state, and a dispatcher object - pretty similar to the regular `useReducer` signature.
+
+```tsx
+const [state, dispatch] = useMachine(...);
+```
+
+### Dispatching events
+
+Dispatching events is a bit different in Fini, compared to how it works with `useReducer`, `Redux` and `XState`. Instead of dispatching action/event objects, `dispatch` is an object that's predefined with functions to dispatch the various events. Example:
+
+```tsx
+type CounterMachine = Machine<{
+  counting: State<{
+    incremented: never
+  }>
+}>
+
+const [state, dispatch] = useMachine<CounterMachine>(...);
+
+return <button onClick={() => dispatch.incremented()}>Increment!</button>
+```
+
+This is so you won't have to either create action creators or manually write `dispatch({ type: "incremented" })`.
+
+### The `state` object
+
+The `state` object contains everything you need to know about the current state of the machine.
+
+To examine its properties, it's easiest with an example.
+
+```tsx
+type CounterMachine = Machine<
+  {
+    idle: State<{
+      started: never;
+    }>;
+    counting: State<
+      {
+        incremented: never;
+        set: number;
+      },
+      { count: number }
+    >;
+  },
+  { maxCount: number }
+>;
+
+const [state] = useMachine(
+  {
+    idle: {
+      started: ({ context }) => ({
+        state: "counting",
+        context: {
+          ...context,
+          count: 0,
+        },
+      }),
+    },
+  },
+  { state: "idle", context: { maxCount: 100 } }
+);
+```
+
+`console.log(state)` will output
+
+```js
+{
+  // name of the current state
+  current: "idle",
+  // the current context
+  context: {
+    maxCount: 100
+  },
+  // all the possible states,
+  // and whether they're the current one:
+  idle: true,
+  counting: false
+}
+```
+
+If we were to run `dispatch.started()`, `state` would look like this:
+
+```js
+{
+  current: "counting",
+  context: {
+    maxCount: 100,
+    count: 0
+  },
+  idle: false,
+  counting: true
+}
+```
+
+### State matching
+
+In this example, we also have a state-specific context, i.e. `{ count: 0 }`. Since Fini tries to protect you from run-time errors, you cannot access `state.context.count` without first checking that you're in the `counting` state:
+
+```tsx
+console.log(state.context.count); // ❌
+
+if (state.current === "counting") {
+  console.log(state.context.count); // ✅
+}
+
+if (state.counting) {
+  console.log(state.context.count); // ✅
+}
+```
+
+Meanwhile, `state.context.maxCount` is "globally" defined, and is accessible in all states.
+
+Finally, these state matchers are also very handing when determining what to render:
+
+```tsx
+return (
+  <div>
+    {state.idle && <button onClick={dispatch.started}>Start counting!</button>}
+    {state.counting && (
+      <div>
+        <p>{`Count: ${state.context.count}`}</p>
+        <button onClick={dispatch.incremented}>Increment</button>
+        <button onClick={() => dispatch.set(100)}>Set to 100</button>
+      </div>
+    )}
+  </div>
+);
+```
+
+## Summary and next steps
+
+Hopefully you've gotten a good grasp on how Fini works. If not, try reading the [step-by-step tutorial](#step-by-step-tutorial), which gives you the different parts of Fini in bite-sized chunks. Also feel free to create an issue if you see something that could be explained better. Fini is meant to be easy to pickup by anyone, and that all starts with good docs.
+
+If you're not convinced by Fini or state machines in general, head over to the [resources section](#resources) for some more material.
+
+# Step-by-step tutorial
+
+Creating stuff is the best way to showcase Fini's features, so let's do exactly that. We'll build a state machine step-by-step to support a simple login sequence.
 
 ## Defining the schema
 
@@ -681,3 +1117,14 @@ const LoginComponent = () => {
   );
 };
 ```
+
+# Resources
+
+These are some of the resources that have been important for my own learning, and in the development of Fini.
+
+- [XState](https://xstate.js.org)
+- [The Statecharts project](https://statecharts.github.io)
+- _[No, disabling a button is not app logic](https://dev.to/davidkpiano/no-disabling-a-button-is-not-app-logic-598i)_ by [David Khourshid](https://twitter.com/davidkpiano)
+- [_Stop using isLoading booleans_](https://kentcdodds.com/blog/stop-using-isloading-booleans) by [Kent C. Dodds](https://twitter.com/kentcdodds)
+- [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
+- [_Redux is half of a pattern_](https://dev.to/davidkpiano/redux-is-half-of-a-pattern-1-2-1hd7) by [David Khourshid](https://twitter.com/davidkpiano)

@@ -25,7 +25,7 @@
     "test": "tsdx test",
     "lint": "tsdx lint",
     "prepare": "tsdx build",
-    "doctoc": "doctoc README.md --maxlevel 1",
+    "doctoc": "doctoc README.md --maxlevel 2",
     "release": "np --no-cleanup"
   },
   "peerDependencies": {
