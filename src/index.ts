@@ -94,7 +94,7 @@ type EffectFunction<S extends StateMap> = (
 type Transition<S extends StateMap, Current extends keyof S> = Update<
   S,
   Current
->;
+> | void;
 
 type CreateTransitionFnMachineObject<
   S extends StateMap,
@@ -264,6 +264,8 @@ export const useMachine = <S extends StateMap>(
         state: update,
         context: state.context,
       };
+    } else if (update === undefined) {
+      return state;
     } else {
       dev.error(`unknown type of EventNode`, update);
     }

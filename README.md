@@ -7,7 +7,6 @@ Small state machine library for React, built on top of the brilliant [use-effect
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Motivation](#motivation)
 - [Features](#features)
 - [Quick start](#quick-start)
@@ -330,6 +329,8 @@ useMachine({
 ```
 
 Updates to context works the same way you normally update state in reducer functions: you have to return the entire context object, not just the properties you're updating. If the state you're transitioning to has its own context properties, you must also make sure that the returned context is compatible.
+
+It's also completely fine to not return nothing at all. This is often the case if you just want to run some side-effects, which we'll talk about later! If nothing is returned, nothing will be updated.
 
 ### Event payloads
 

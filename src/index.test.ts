@@ -628,3 +628,24 @@ test("login machine", async () => {
 
   expect(result.current[0].current).toBe("error");
 });
+
+test("void event handler", () => {
+  type M = Machine<{
+    state1: State<{
+      event1: never;
+    }>;
+  }>;
+  const { result } = renderHook(() =>
+    useMachine<M>(
+      {
+        state1: {
+          event1: () => {},
+        },
+      },
+      "state1"
+    )
+  );
+  act(() => result.current[1].event1());
+
+  expect(result.current[0].current).toBe("state1");
+});
