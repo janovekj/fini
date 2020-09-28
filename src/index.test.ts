@@ -565,7 +565,7 @@ test("login machine", async () => {
             },
           }),
           failed: ({ context, exec }, error) => {
-            exec(() => console.error("Something bad happened!"));
+            exec(() => console.error("Test message: Something bad happened!"));
             return {
               state: "error",
               context: {
