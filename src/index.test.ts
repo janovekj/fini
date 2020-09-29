@@ -1,168 +1,133 @@
 import { renderHook, act } from "@testing-library/react-hooks";
 import { useMachine, Machine, State } from "./index";
 
-test("various transitions", () => {
-  const something = { value: "foo" };
-
-  type BaseContext = {
-    value?: string;
-  };
-
-  type TestMachine = Machine<
-    {
-      idle: State<{
-        focus: never;
-      }>;
-      editing: State<
-        {
-          change: string;
-          submit: boolean;
-        },
-        { value: string }
-      >;
-      submitted: {
-        on: {};
-        context: {
-          id: string;
-        };
-      };
-    },
-    BaseContext
-  >;
-
+test("string shorthand initial state", () => {
+  type M = Machine<{
+    a: State;
+  }>;
   const { result } = renderHook(() =>
-    useMachine<TestMachine>(
+    useMachine<M>(
       {
-        idle: {
-          focus: {
-            state: "editing",
-            context: {
-              value: "asdas",
-            },
-          },
-        },
-        editing: {
-          change: ({ state, context, exec }, value) => {
-            expect(state).toBe("editing");
-            exec(() => void (something.value = value));
-            return {
-              ...context,
-              value,
-            };
-          },
-          submit: (_, isValid) => ({
-            state: "submitted",
-            context: {
-              id: "loool",
-            },
-          }),
-        },
-        submitted: {},
+        a: {},
       },
-      "idle"
+      "a"
     )
   );
+  expect(result.current[0].current).toBe("a");
 
   // context should be defined, even if doesn't have any initial values
   expect(result.current[0].context).toEqual({});
-  expect(result.current[0].context.value).toBe(undefined);
-
-  expect(result.current[0].current).toBe("idle");
-  expect(result.current[0].idle).toBeTruthy();
-
-  act(() => {
-    result.current[1].focus();
-  });
-
-  expect(result.current[0].current).toBe("editing");
-  expect(result.current[0].editing).toBeTruthy();
-
-  act(() => {
-    result.current[1].change("lol");
-  });
-
-  expect(something.value).toBe("lol");
-
-  act(() => {
-    result.current[1].focus();
-  });
-
-  // nothing should happen if curent state doesn't handle the event
-  expect(result.current[0].current).toBe("editing");
-  expect(result.current[0].editing).toBeTruthy();
-
-  if (result.current[0].editing) {
-    // this should not give error
-    result.current[0].context.value.toLocaleLowerCase();
-  }
 });
 
-test("transition with plain state object", () => {
+test("object initial state and context", () => {
+  type M = Machine<
+    {
+      a: State;
+    },
+    { prop: number }
+  >;
   const { result } = renderHook(() =>
-    useMachine(
+    useMachine<M>(
+      {
+        a: {},
+      },
+      { state: "a", context: { prop: 123 } }
+    )
+  );
+  expect(result.current[0].current).toBe("a");
+  expect(result.current[0].context.prop).toBe(123);
+});
+
+test("string shorthand state transition", () => {
+  type M = Machine<{
+    a: State<{
+      p: never;
+    }>;
+    b: State;
+  }>;
+
+  const { result } = renderHook(() =>
+    useMachine<M>(
       {
         a: {
-          event: {
-            state: "b",
-          },
+          p: "b",
         },
         b: {},
       },
-      { state: "a" }
+      "a"
     )
   );
 
-  expect(result.current[0].current).toBe("a");
-  expect(result.current[0].a).toBeTruthy();
-
   act(() => {
-    // @ts-expect-error - TODO: improve typings so that payload is optional here
-    result.current[1].event();
+    result.current[1].p();
   });
 
   expect(result.current[0].current).toBe("b");
-  expect(result.current[0].b).toBeTruthy();
 });
 
-test("string based transition", () => {
-  type TestMachine = Machine<
-    {
-      a: State<
-        {
-          event: never;
+test("object state transition", () => {
+  type M = Machine<{
+    a: State<{
+      p: never;
+    }>;
+    b: State;
+  }>;
+
+  const { result } = renderHook(() =>
+    useMachine<M>(
+      {
+        a: {
+          p: { state: "b" },
         },
-        { prop2: string }
-      >;
-      b: State<{}, { prop2: string }>;
+        b: {},
+      },
+      "a"
+    )
+  );
+
+  act(() => {
+    result.current[1].p();
+  });
+
+  expect(result.current[0].current).toBe("b");
+});
+
+test("shorthand context update", () => {
+  type M = Machine<
+    {
+      a: State<{
+        p: never;
+      }>;
     },
-    { prop1?: string }
+    { prop: string }
   >;
 
   const { result } = renderHook(() =>
-    useMachine<TestMachine>(
+    useMachine<M>(
       {
         a: {
-          event: "b",
+          p: { prop: "new value" },
         },
-        b: {},
       },
-      { state: "a", context: { prop2: "test" } }
+      { state: "a", context: { prop: "old value" } }
     )
   );
 
   act(() => {
-    result.current[1].event();
+    result.current[1].p();
   });
 
-  expect(result.current[0].current).toBe("b");
-  expect(result.current[0].b).toBeTruthy();
+  expect(result.current[0].context.prop).toBe("new value");
+
+  // shouldn't change state
+  expect(result.current[0].current).toBe("a");
 });
 
-test("function based transition with value", () => {
-  type TestMachine = Machine<
+test("context and state update object", () => {
+  type M = Machine<
     {
       a: State<{
-        event: string;
+        p: never;
       }>;
       b: State;
     },
@@ -170,109 +135,224 @@ test("function based transition with value", () => {
   >;
 
   const { result } = renderHook(() =>
-    useMachine<TestMachine>(
+    useMachine<M>(
       {
         a: {
-          event: (context, newValue) => ({
-            state: "b",
-            context: {
-              ...context,
-              prop: newValue,
-            },
-          }),
+          p: { state: "b", context: { prop: "new value" } },
         },
         b: {},
       },
-      { state: "a", context: { prop: "test" } }
+      { state: "a", context: { prop: "old value" } }
     )
   );
 
   act(() => {
-    result.current[1].event("new value");
+    result.current[1].p();
   });
 
   expect(result.current[0].current).toBe("b");
   expect(result.current[0].context.prop).toBe("new value");
 });
 
-test("tuple based transition with side-effect", () => {
-  type TestMachine = Machine<
+test("string shorthand state transition by function", () => {
+  type M = Machine<{
+    a: State<{
+      p: never;
+    }>;
+    b: State;
+  }>;
+
+  const { result } = renderHook(() =>
+    useMachine<M>(
+      {
+        a: {
+          p: () => "b",
+        },
+        b: {},
+      },
+      "a"
+    )
+  );
+
+  act(() => {
+    result.current[1].p();
+  });
+
+  expect(result.current[0].current).toBe("b");
+});
+
+test("object state transition by function", () => {
+  type M = Machine<{
+    a: State<{
+      p: never;
+    }>;
+    b: State;
+  }>;
+
+  const { result } = renderHook(() =>
+    useMachine<M>(
+      {
+        a: {
+          p: () => ({
+            state: "b",
+          }),
+        },
+        b: {},
+      },
+      "a"
+    )
+  );
+
+  act(() => {
+    result.current[1].p();
+  });
+
+  expect(result.current[0].current).toBe("b");
+});
+
+test("shorthand context update by function", () => {
+  type M = Machine<
     {
       a: State<{
-        event: never;
+        p: never;
+      }>;
+    },
+    { prop: string }
+  >;
+
+  const { result } = renderHook(() =>
+    useMachine<M>(
+      {
+        a: {
+          p: () => ({ prop: "new value" }),
+        },
+      },
+      { state: "a", context: { prop: "old value" } }
+    )
+  );
+
+  act(() => {
+    result.current[1].p();
+  });
+
+  expect(result.current[0].context.prop).toBe("new value");
+
+  // shouldn't change state
+  expect(result.current[0].current).toBe("a");
+});
+
+test("context and state update object by function", () => {
+  type M = Machine<
+    {
+      a: State<{
+        p: never;
       }>;
       b: State;
     },
     { prop: string }
   >;
 
-  const value = { current: "test" };
   const { result } = renderHook(() =>
-    useMachine<TestMachine>(
+    useMachine<M>(
       {
         a: {
-          event: ({ exec }) => {
-            exec(() => void (value.current = "new value"));
-            return {
-              state: "b",
-              context: {
-                prop: "asd",
-              },
-            };
-          },
+          p: () => ({ state: "b", context: { prop: "new value" } }),
         },
         b: {},
       },
-      { state: "a", context: { prop: "test" } }
+      { state: "a", context: { prop: "old value" } }
     )
   );
 
   act(() => {
-    result.current[1].event();
+    result.current[1].p();
   });
 
+  expect(result.current[0].context.prop).toBe("new value");
   expect(result.current[0].current).toBe("b");
-  expect(result.current[0].context.prop).toBe("asd");
-  expect(value.current).toBe("new value");
 });
 
-test("tuple from function based transition with side-effect", () => {
-  type TestMachine = Machine<
+test("void event handler", () => {
+  type M = Machine<{
+    state1: State<{
+      event1: never;
+    }>;
+  }>;
+  const { result } = renderHook(() =>
+    useMachine<M>(
+      {
+        state1: {
+          event1: () => {},
+        },
+      },
+      "state1"
+    )
+  );
+  act(() => result.current[1].event1());
+
+  expect(result.current[0].current).toBe("state1");
+});
+
+test("dispatch event with payload", () => {
+  type M = Machine<
     {
-      a: State<{ event: never }>;
+      a: State<{
+        p: string;
+      }>;
       b: State;
     },
     { prop: string }
   >;
 
-  const value = { current: "test" };
   const { result } = renderHook(() =>
-    useMachine<TestMachine>(
+    useMachine<M>(
       {
         a: {
-          event: ({ exec, context }) => {
-            exec(() => void (value.current = "new value"));
-            return {
-              state: "b",
-              context,
-            };
-          },
+          p: (_, payload) => ({ state: "b", context: { prop: payload } }),
         },
         b: {},
       },
-      { state: "a", context: { prop: "test" } }
+      { state: "a", context: { prop: "old value" } }
     )
   );
-  expect(result.current[0].context.prop).toBe("test");
 
   act(() => {
-    result.current[1].event();
+    result.current[1].p("new value");
   });
 
-  expect(result.current[0].current).toBe("b");
-  // expect(result.current[0].context.prop).toBe("test");
+  expect(result.current[0].context.prop).toBe("new value");
+});
+
+test("event handler with side-effect", () => {
+  type M = Machine<{
+    a: State<{
+      p: never;
+    }>;
+  }>;
+
+  const value = {
+    current: "old value",
+  };
+
+  const { result } = renderHook(() =>
+    useMachine<M>(
+      {
+        a: {
+          p: ({ exec }) => void exec(() => void (value.current = "new value")),
+        },
+      },
+      "a"
+    )
+  );
+
+  act(() => {
+    result.current[1].p();
+  });
+
   expect(value.current).toBe("new value");
 });
+
+/* #### Various examples #### */
 
 test("simple counter example", () => {
   type CounterMachine = Machine<
@@ -476,7 +556,6 @@ test("login machine", async () => {
 
   // First, define the schema for the machine
   type LoginMachine = Machine<{
-    // Use the `State` helper type to create types for each state
     initial: State<{
       // Specify an event handler with the `Event` helper type,
       // which accepts a type argument for the event payload
@@ -628,25 +707,4 @@ test("login machine", async () => {
   await waitForNextUpdate();
 
   expect(result.current[0].current).toBe("error");
-});
-
-test("void event handler", () => {
-  type M = Machine<{
-    state1: State<{
-      event1: never;
-    }>;
-  }>;
-  const { result } = renderHook(() =>
-    useMachine<M>(
-      {
-        state1: {
-          event1: () => {},
-        },
-      },
-      "state1"
-    )
-  );
-  act(() => result.current[1].event1());
-
-  expect(result.current[0].current).toBe("state1");
 });
