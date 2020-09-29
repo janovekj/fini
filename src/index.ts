@@ -42,8 +42,6 @@ type MachineState<BaseContext, S extends State> = {
   context: ApplyBaseContext<BaseContext, S["context"]>;
 };
 
-// TODO: make a union of all the state contexts,
-// so everything will appear in intellisense if not narrowed by typeguards
 export type Machine<
   S extends StateMap = {},
   BaseContext extends ContextType = {}
