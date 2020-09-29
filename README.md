@@ -181,6 +181,8 @@ The benefit of doing it like this, is that you'll only have to define the event/
 
 Note that duplicate events should be defined with the same payload type everywhere, otherwise TypeScript will get confused.
 
+Also, this documentation uses camelCase for naming events. If you [PREFER_SHOUTING_NAMES](https://twitter.com/dan_abramov/status/1191487701058543617), that's also fine!
+
 ### Context
 
 Fini also supports the concept of context, also known as extended state. One of the best things about Fini, is the support for _state-specific context_, or _typestate_, as the concept is more formally called. Using typestates is an easy way to ensure you never enter new states without the required data, or try to access properties that aren't defined in a given state.
