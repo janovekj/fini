@@ -318,12 +318,12 @@ useMachine({
 
 This is pretty similar to how changing state works. It's worth noting that `event1` and `event3` just returns the new context directly, and since the object doesn't include a `state` property, Fini will assume that this is a context update.
 
-All event handler functions also receive the current context as a parameter:
+All event handler functions also receive the current context and state name as the first parameter:
 
 ```tsx
 useMachine({
   counting: {
-    incremented: ({ context }) => ({
+    incremented: ({ state, context }) => ({
       count: context.count + 1,
     }),
   },

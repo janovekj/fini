@@ -42,7 +42,8 @@ test("various transitions", () => {
           },
         },
         editing: {
-          change: ({ context, exec }, value) => {
+          change: ({ state, context, exec }, value) => {
+            expect(state).toBe("editing");
             exec(() => void (something.value = value));
             return {
               ...context,

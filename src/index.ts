@@ -98,6 +98,7 @@ type CreateTransitionFnMachineObject<
   S extends StateMap,
   Current extends keyof S
 > = {
+  state: Current;
   context: S[Current]["context"];
   exec: (effect: EffectFunction<S>) => void;
 };
@@ -242,7 +243,7 @@ export const useMachine = <S extends StateMap>(
     const transition = isFunction(eventHandler)
       ? // @ts-ignore
         eventHandler(
-          { context: state.context, exec: customExec },
+          { state: state.state, context: state.context, exec: customExec },
           // @ts-ignore
           event?.payload
         )
