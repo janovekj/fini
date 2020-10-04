@@ -58,11 +58,11 @@ import { useMachine, Machine, State } from "fini";
 type CounterMachine = Machine<
   {
     idle: State<{
-      started: never;
+      start: never;
     }>;
     counting: State<
       {
-        incremented: never;
+        increment: never;
         set: number;
       },
       { count: number }
@@ -75,7 +75,7 @@ export default function App() {
   const machine = useMachine<CounterMachine>(
     {
       idle: {
-        started: ({ context }) => ({
+        start: ({ context }) => ({
           state: "counting",
           context: {
             ...context,
@@ -84,7 +84,7 @@ export default function App() {
         }),
       },
       counting: {
-        incremented: ({ context }) => ({
+        increment: ({ context }) => ({
           ...context,
           count:
             context.count === context.maxCount
@@ -101,13 +101,11 @@ export default function App() {
 
   return (
     <div>
-      {machine.idle && (
-        <button onClick={machine.started}>Start counting!</button>
-      )}
+      {machine.idle && <button onClick={machine.start}>Start counting!</button>}
       {machine.counting && (
         <div>
           <p>{`Count: ${machine.context.count}`}</p>
-          <button onClick={machine.incremented}>Increment</button>
+          <button onClick={machine.increment}>Increment</button>
           <button onClick={() => machine.set(100)}>Set to 100</button>
         </div>
       )}
@@ -142,15 +140,15 @@ Here is the schema for a simple counter machine:
 import { Machine, State } from "fini";
 
 type CounterMachine = Machine<{
-  // State which supports the `started` event
+  // State which supports the `start` event
   idle: State<{
     // Event with no payload
-    started: never;
+    start: never;
   }>;
 
-  // State which supports the `incremented` and `set` events
+  // State which supports the `increment` and `set` events
   counting: State<{
-    incremented: never;
+    increment: never;
     // Event which accepts a `number` payload
     set: number;
   }>;
@@ -162,10 +160,10 @@ Let's break this down a bit. If you've worked with TypeScript in Redux or XState
 ```tsx
 type CounterEvent =
   | {
-      type: "started";
+      type: "start";
     }
   | {
-      type: "incremented";
+      type: "increment";
     }
   | {
       type: "set";
@@ -196,11 +194,11 @@ import { Machine, State } from "fini";
 type CounterMachine = Machine<
   {
     idle: State<{
-      started: never;
+      start: never;
     }>;
     counting: State<
       {
-        incremented: never;
+        increment: never;
         set: number;
       },
       // State-specific context
@@ -323,7 +321,7 @@ All event handler functions also receive the current context and state name as t
 ```tsx
 useMachine({
   counting: {
-    incremented: ({ state, context }) => ({
+    increment: ({ state, context }) => ({
       count: context.count + 1,
     }),
   },
@@ -342,7 +340,7 @@ A state machine would be quite useless if we couldn't pass along data with the e
 type CounterMachine = Machine<
   {
     counting: {
-      countModified: number;
+      setCount: number;
     };
   },
   {
@@ -352,7 +350,7 @@ type CounterMachine = Machine<
 
 useMachine({
   counting: {
-    countModified: ({ context }, newCount) => ({
+    setCount: ({ context }, newCount) => ({
       count: newCount,
     }),
   },
@@ -366,7 +364,7 @@ Event handler functions should be pure, so side-effects have to be handled on Fi
 ```tsx
 useMachine({
   idle: {
-    loggedIn: ({ context, exec }, userId) => {
+    login: ({ context, exec }, userId) => {
       exec(() => {
         fetchUser(userId).then(user => console.log(user));
       });
@@ -382,15 +380,15 @@ As you can see, `exec` accepts a function that triggers the side-effects. The fu
 ```tsx
 useMachine({
   idle: {
-    loggedIn: ({ context, exec }, userId) => {
+    login: ({ context, exec }, userId) => {
       exec(dispatch => {
-        fetchUser(userId).then(user => dispatch.succeeded(user));
+        fetchUser(userId).then(user => dispatch.success(user));
       });
       return "fetchingUser";
     },
   },
   fetchingUser: {
-    succeeded: ({ context }, user) => ({
+    success: ({ context }, user) => ({
       ...context,
       user,
     }),
@@ -439,7 +437,7 @@ Dispatching events is a bit different in Fini, compared to how it works with `us
 ```tsx
 type CounterMachine = Machine<{
   counting: State<{
-    incremented: never
+    increment: never
     set: number
   }>
 }>
@@ -447,12 +445,12 @@ type CounterMachine = Machine<{
 const counterMachine = useMachine<CounterMachine>(...);
 
 return <div>
-  <button onClick={() => counterMachine.incremented()}>Increment!</button>
+  <button onClick={() => counterMachine.increment()}>Increment!</button>
   <button onClick={() => counterMachine.set(100)}>Set to 100</button>
 </div>
 ```
 
-This is so you won't have to either create action creators or manually write `dispatch({ type: "incremented" })` (this is what happens internally, though!).
+This is so you won't have to either create action creators or manually write `dispatch({ type: "increment" })` (this is what happens internally, though!).
 
 ### Inspecting the state
 
@@ -464,11 +462,11 @@ To examine its properties, it's easiest with an example.
 type CounterMachine = Machine<
   {
     idle: State<{
-      started: never;
+      start: never;
     }>;
     counting: State<
       {
-        incremented: never;
+        increment: never;
         set: number;
       },
       { count: number }
@@ -480,7 +478,7 @@ type CounterMachine = Machine<
 const counterMachine = useMachine(
   {
     idle: {
-      started: ({ context }) => ({
+      start: ({ context }) => ({
         state: "counting",
         context: {
           ...context,
@@ -510,7 +508,7 @@ Ignoring event dispatching functions, `console.log(counterMachine)` will output
 }
 ```
 
-If we were to run `counterMachine.started()`, `machine` would look like this:
+If we were to run `counterMachine.start()`, `machine` would look like this:
 
 ```js
 {
@@ -546,12 +544,12 @@ Finally, these state matchers are also very handing when determining what to ren
 return (
   <div>
     {counterMachine.idle && (
-      <button onClick={counterMachine.started}>Start counting!</button>
+      <button onClick={counterMachine.start}>Start counting!</button>
     )}
     {counterMachine.counting && (
       <div>
         <p>{`Count: ${counterMachine.context.count}`}</p>
-        <button onClick={counterMachine.incremented}>Increment</button>
+        <button onClick={counterMachine.increment}>Increment</button>
         <button onClick={() => counterMachine.set(100)}>Set to 100</button>
       </div>
     )}

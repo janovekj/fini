@@ -33,12 +33,12 @@ import { Machine, State } from "fini";
 
 type LoginMachine = Machine<{
   input: State<{
-    emailChanged: string;
+    changeEmail: string;
   }>;
 }>;
 ```
 
-Each event name is mapped to a corresponding _payload type_. This refers to the data that we might want to pass along with the event. In our case, we're sending an email, which is a `string`, and `emailChanged` is typed accordingly.
+Each event name is mapped to a corresponding _payload type_. This refers to the data that we might want to pass along with the event. In our case, we're sending an email, which is a `string`, and `changeEmail` is typed accordingly.
 
 If you're coming from Redux, it's pretty much the exact same as the concept of payloads in action objects (because behind the scenes, this _is_ an action object - Fini just calls them events instead).
 
@@ -47,8 +47,8 @@ Anyways, we'll need an event to handle password input as well.
 ```tsx
 type LoginMachine = Machine<{
   input: State<{
-    emailChanged: string;
-    passwordChanged: string;
+    changeEmail: string;
+    changePassword: string;
   }>;
 }>;
 ```
@@ -62,8 +62,8 @@ We can define such a context in two ways:
 type LoginMachine = Machine<{
   input: State<
     {
-      emailChanged: string;
-      passwordChanged: string;
+      changeEmail: string;
+      changePassword: string;
     },
     // Defined inside the `State`
     { email: string; password: string }
@@ -77,8 +77,8 @@ type LoginMachine = Machine<{
 type LoginMachine = Machine<
   {
     input: State<{
-      emailChanged: string;
-      passwordChanged: string;
+      changeEmail: string;
+      changePassword: string;
     }>;
   },
   // Defined inside the `Machine`
@@ -102,8 +102,8 @@ import { Machine, State, useMachine } from "fini";
 type LoginMachine = Machine<
   {
     input: State<{
-      emailChanged: string;
-      passwordChanged: string;
+      changeEmail: string;
+      changePassword: string;
     }>;
   },
   { email: string; password: string }
@@ -131,13 +131,13 @@ const loginMachine = useMachine<LoginMachine>(
 
 Tip: If it weren't for `email` and `password` being required, we could just have passed in `"input"` as a shorthand, instead of an entire object.
 
-Next we'll add the `input` state and the `emailChanged` event handler:
+Next we'll add the `input` state and the `changeEmail` event handler:
 
 ```tsx
 const loginMachine = useMachine<LoginMachine>(
   {
     input: {
-      emailChanged: (machine, payload) => ({
+      changeEmail: (machine, payload) => ({
         state: "input",
         context: {
           ...machine.context,
@@ -156,7 +156,7 @@ const loginMachine = useMachine<LoginMachine>(
 );
 ```
 
-As you can see, `emailChanged` accepts a function where two parameters are provided:
+As you can see, `changeEmail` accepts a function where two parameters are provided:
 
 1. `machine` is an object containing the current context, as well as some other things that we'll cover later
 2. `payload`, which is the value being passed along with the event. It is of the same type as the one defined on the state's event in our schema
@@ -167,7 +167,7 @@ The purpose of the function is to return the next state. In our case, we're not 
 const loginMachine = useMachine<LoginMachine>(
   {
     input: {
-      emailChanged: (machine, payload) => ({
+      changeEmail: (machine, payload) => ({
         ...machine.context,
         email: payload,
       }),
@@ -183,17 +183,17 @@ const loginMachine = useMachine<LoginMachine>(
 );
 ```
 
-Let's add the `passwordChanged` event handler as well (and make things a bit more readably, while we're at it):
+Let's add the `changePassword` event handler as well (and make things a bit more readably, while we're at it):
 
 ```tsx
 const loginMachine = useMachine<LoginMachine>(
   {
     input: {
-      emailChanged: ({ context }, email) => ({
+      changeEmail: ({ context }, email) => ({
         ...context,
         email,
       }),
-      passwordChanged: ({ context }, password) => ({
+      changePassword: ({ context }, password) => ({
         ...context,
         password,
       }),
@@ -218,11 +218,11 @@ const LoginComponent = () => {
   return <div>
     <input
       value={loginMachine.context.email}
-      onChange={event => loginMachine.emailChanged(event.target.value)}
+      onChange={event => loginMachine.changeEmail(event.target.value)}
     />
     <input
       value={loginMachine.context.password}
-      onChange={event => loginMachine.passwordChanged(event.target.value)}
+      onChange={event => loginMachine.changePassword(event.target.value)}
     />
   </div>
 }
@@ -245,19 +245,19 @@ type User = {
 type LoginMachine = Machine<
   {
     input: State<{
-      emailChanged: string;
-      passwordChanged: string;
-      submitted: never;
+      changeEmail: string;
+      changePassword: string;
+      submit: never;
     }>;
     submitting: State<{
-      succeeded: User;
+      success: User;
     }>;
   },
   { email: string; password: string }
 >;
 ```
 
-Note that `submitted` has a payload type of `never`! This is because it literally never accepts a payload, since `email` and `password` is already available through the machine's context.
+Note that `submit` has a payload type of `never`! This is because it literally never accepts a payload, since `email` and `password` is already available through the machine's context.
 
 We have also added a second state. How exciting! We'll head right over to our implementation and attempt to make a transition.
 
@@ -266,18 +266,18 @@ const LoginComponent = () => {
   const loginMachine = useMachine<LoginMachine>(
     {
       input: {
-        emailChanged: ({ context }, email) => ({
+        changeEmail: ({ context }, email) => ({
           ...context,
           email,
         }),
-        passwordChanged: ({ context }, password) => ({
+        changePassword: ({ context }, password) => ({
           ...context,
           password,
         }),
-        submitted: "submitting",
+        submit: "submitting",
       },
       submitting: {
-        succeeded: () => {}, // TODO
+        success: () => {}, // TODO
       },
     },
     {
@@ -293,19 +293,19 @@ const LoginComponent = () => {
     <div>
       <input
         value={loginMachine.context.email}
-        onChange={event => loginMachine.emailChanged(event.target.value)}
+        onChange={event => loginMachine.changeEmail(event.target.value)}
       />
       <input
         value={loginMachine.context.password}
-        onChange={event => loginMachine.passwordChanged(event.target.value)}
+        onChange={event => loginMachine.changePassword(event.target.value)}
       />
-      <button onClick={loginMachine.submitted}>Submit</button>
+      <button onClick={loginMachine.submit}>Submit</button>
     </div>
   );
 };
 ```
 
-There are a couple of new things to go over here. First of all, we're using a string shorthand to define the next state for our machine. This is handy when there aren't any context updates required for the event. Secondly, we've added the (for now empty) `submitted` state. And finally, we've added a simple button to dispatch the event for us.
+There are a couple of new things to go over here. First of all, we're using a string shorthand to define the next state for our machine. This is handy when there aren't any context updates required for the event. Secondly, we've added the (for now empty) `submitting` state. And finally, we've added a simple button to dispatch the event for us.
 
 You might however notice that something is missing: we're not actually doing any requests to the server! Let's go right ahead and create our first _side-effect_ 💯
 
@@ -313,28 +313,28 @@ You might however notice that something is missing: we're not actually doing any
 const loginMachine = useMachine<LoginMachine>(
   {
     input: {
-      emailChanged: ({ context }, email) => ({
+      changeEmail: ({ context }, email) => ({
         ...context,
         email,
       }),
-      passwordChanged: ({ context }, password) => ({
+      changePassword: ({ context }, password) => ({
         ...context,
         password,
       }),
-      submitted: ({ context, exec }) => {
+      submit: ({ context, exec }) => {
         exec(() => {
           fetch("/api/login", {
             method: "POST",
             body: JSON.stringify(context),
           })
             .then(res => res.json())
-            .then((user: User) => dispatch.succeeded(user));
+            .then((user: User) => dispatch.success(user));
         });
         return "submitting";
       },
     },
     submitting: {
-      succeeded: () => {}, // TODO
+      success: () => {}, // TODO
     },
   },
   {
@@ -349,7 +349,7 @@ const loginMachine = useMachine<LoginMachine>(
 
 Alongside `context`, all event handlers have an `exec` function at their disposal. Simply put, `exec` is just a function that is set up to call whatever function we put inside it when the next state update happens.
 
-In our case, we've given it a simple function that will make a request to our endpoint, and when it resolves, it will dispatch the `succeeded` event. Now we're getting somewhere!
+In our case, we've given it a simple function that will make a request to our endpoint, and when it resolves, it will dispatch the `success` event. Now we're getting somewhere!
 
 (For simplicity, we're assuming the request will never fail, which you probably shouldn't do in real life. Please don't use this example in production.)
 
@@ -364,15 +364,15 @@ type User = {
 type LoginMachine = Machine<
   {
     input: State<{
-      emailChanged: string;
-      passwordChanged: string;
-      submitted: never;
+      changeEmail: string;
+      changePassword: string;
+      submit: never;
     }>;
     submitting: State<{
-      succeeded: User;
+      success: User;
     }>;
     loggedIn: State<{
-      loggedOut: never
+      logOut: never
     }, { user: User }>
   },
   { email: string; password: string }
@@ -383,28 +383,28 @@ type LoginMachine = Machine<
 const loginMachine = useMachine<LoginMachine>(
   {
     input: {
-      emailChanged: ({ context }, email) => ({
+      changeEmail: ({ context }, email) => ({
         ...context,
         email,
       }),
-      passwordChanged: ({ context }, password) => ({
+      changePassword: ({ context }, password) => ({
         ...context,
         password,
       }),
-      submitted: ({ context, exec }) => {
+      submit: ({ context, exec }) => {
         exec(() => {
             fetch("/api/login", {
               method: "POST",
               body: JSON.stringify(context)
             })
               .then((res) => res.json())
-              .then((user: User) => dispatch.succeeded(user));
+              .then((user: User) => dispatch.success(user));
           });
         return "submitting";
       },
     },
     submitting: {
-      succeeded: ({ context }, user) => ({
+      success: ({ context }, user) => ({
         state: "loggedIn",
         context: {
           ...context,
@@ -413,7 +413,7 @@ const loginMachine = useMachine<LoginMachine>(
       }),
     },
     loggedIn: {
-      loggedOut: {
+      logOut: {
         state: "input",
         context: {
           email: "",
@@ -450,20 +450,20 @@ const LoginComponent = () => {
         loginMachine.input && <div>
           <input
             value={loginMachine.context.email}
-            onChange={event => loginMachine.emailChanged(event.target.value)}
+            onChange={event => loginMachine.changeEmail(event.target.value)}
           />
           <input
             value={loginMachine.context.password}
-            onChange={event => loginMachine.passwordChanged(event.target.value)}
+            onChange={event => loginMachine.changePassword(event.target.value)}
           />
-          <button onClick={loginMachine.submitted}>Submit</button>
+          <button onClick={loginMachine.submit}>Submit</button>
         </div>
       }
       { loginMachine.current === "submitting" && <p>Loading user...</p> }
       {
         loginMachine.loggedIn && <div>
           <p>Welcome, {loginMachine.context.user.name}!</p>
-          <button onClick={loginMachine.loggedOut}>Log out</button>
+          <button onClick={loginMachine.logOut}>Log out</button>
         </div>
       }
     </div>
@@ -486,16 +486,16 @@ type User = {
 type LoginMachine = Machine<
   {
     input: State<{
-      emailChanged: string;
-      passwordChanged: string;
-      submitted: never;
+      changeEmail: string;
+      changePassword: string;
+      submit: never;
     }>;
     submitting: State<{
-      succeeded: User;
+      success: User;
     }>;
     loggedIn: State<
       {
-        loggedOut: never;
+        logOut: never;
       },
       { user: User }
     >;
@@ -507,28 +507,28 @@ const LoginComponent = () => {
   const loginMachine = useMachine<LoginMachine>(
     {
       input: {
-        emailChanged: ({ context }, email) => ({
+        changeEmail: ({ context }, email) => ({
           ...context,
           email,
         }),
-        passwordChanged: ({ context }, password) => ({
+        changePassword: ({ context }, password) => ({
           ...context,
           password,
         }),
-        submitted: ({ context, exec }) => {
+        submit: ({ context, exec }) => {
           exec(() => {
             fetch("/api/login", {
               method: "POST",
               body: JSON.stringify(context),
             })
               .then(res => res.json())
-              .then((user: User) => dispatch.succeeded(user));
+              .then((user: User) => dispatch.success(user));
           });
           return "submitting";
         },
       },
       submitting: {
-        succeeded: ({ context }, user) => ({
+        success: ({ context }, user) => ({
           state: "loggedIn",
           context: {
             ...context,
@@ -537,7 +537,7 @@ const LoginComponent = () => {
         }),
       },
       loggedIn: {
-        loggedOut: {
+        logOut: {
           state: "input",
           context: {
             email: "",
@@ -561,20 +561,20 @@ const LoginComponent = () => {
         <div>
           <input
             value={loginMachine.context.email}
-            onChange={event => loginMachine.emailChanged(event.target.value)}
+            onChange={event => loginMachine.changeEmail(event.target.value)}
           />
           <input
             value={loginMachine.context.password}
-            onChange={event => loginMachine.passwordChanged(event.target.value)}
+            onChange={event => loginMachine.changePassword(event.target.value)}
           />
-          <button onClick={loginMachine.submitted}>Submit</button>
+          <button onClick={loginMachine.submit}>Submit</button>
         </div>
       )}
       {loginMachine.current === "submitting" && <p>Loading user...</p>}
       {loginMachine.loggedIn && (
         <div>
           <p>Welcome, {loginMachine.context.user.name}!</p>
-          <button onClick={loginMachine.loggedOut}>Log out</button>
+          <button onClick={loginMachine.logOut}>Log out</button>
         </div>
       )}
     </div>
