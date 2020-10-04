@@ -1,6 +1,6 @@
 # Fini
 
-Small state machine library for React, built on top of the brilliant [use-effect-reducer](https://github.com/davidkpiano/useEffectReducer/).
+Small and capable state machine library for React.
 
 [![npm version](http://img.shields.io/npm/v/fini.svg?style=flat)](https://npmjs.org/package/fini "View this project on npm") [![GitHub license](https://img.shields.io/github/license/janovekj/fini)](https://github.com/janovekj/fini/blob/master/LICENSE "MIT license")
 
@@ -1154,6 +1154,8 @@ const LoginComponent = () => {
 # Resources
 
 These are some of the resources that have been important for my own learning, and in the development of Fini.
+
+In particular, Fini is built on top of [use-effect-reducer](https://github.com/davidkpiano/useEffectReducer/), which handles all the heavy lifting related to handling effects. Check it out!
 
 - [XState](https://xstate.js.org)
 - [The Statecharts project](https://statecharts.github.io)
