@@ -7,7 +7,6 @@ Small and capable state machine library for React.
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
-
 - [Motivation](#motivation)
 - [Features](#features)
 - [Quick start](#quick-start)
@@ -48,7 +47,7 @@ npm install fini
 Simple counter example ([Codesandbox](https://codesandbox.io/s/fini-counter-example-ul43u?file=/src/App.tsx))
 
 ```tsx
-import * as React from "react";
+import React from "react";
 import { useMachine, Machine, State } from "fini";
 
 type CounterMachine = Machine<
@@ -67,7 +66,7 @@ type CounterMachine = Machine<
   { maxCount: number }
 >;
 
-export default function App() {
+const App = () => {
   const machine = useMachine<CounterMachine>(
     {
       idle: {
@@ -107,7 +106,7 @@ export default function App() {
       )}
     </div>
   );
-}
+};
 ```
 
 # Concepts
