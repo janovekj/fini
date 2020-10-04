@@ -170,13 +170,14 @@ type Dispatcher<S extends StateMap> = UnionToIntersection<
   }[keyof S]
 >;
 
-type CurrentState<S extends StateMap> = {
+type MachineResult<S extends StateMap> = {
   [K in keyof S]: {
     current: K;
     context: S[K]["context"];
   } & {
     [KK in keyof S]: KK extends K ? true : false;
-  };
+  } &
+    Dispatcher<S>;
 }[keyof S];
 
 type OptionalContextStates<S extends StateMap> = {
@@ -371,14 +372,16 @@ export const useMachine = <S extends StateMap>(
     return initial;
   });
 
-  const state: CurrentState<S> = {
+  const state: MachineResult<S> = {
     current: reducerState.state,
     ...Object.assign(
       {},
       ...Object.keys(schema).map(s => ({ [s]: s === reducerState.state }))
     ),
     context: reducerState.context ?? {},
+    // @ts-ignore
+    ...dispatcher,
   };
 
-  return [state, dispatcher] as const;
+  return state;
 };

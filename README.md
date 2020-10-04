@@ -72,7 +72,7 @@ type CounterMachine = Machine<
 >;
 
 export default function App() {
-  const [state, dispatch] = useMachine<CounterMachine>(
+  const machine = useMachine<CounterMachine>(
     {
       idle: {
         started: ({ context }) => ({
@@ -101,14 +101,14 @@ export default function App() {
 
   return (
     <div>
-      {state.idle && (
-        <button onClick={dispatch.started}>Start counting!</button>
+      {machine.idle && (
+        <button onClick={machine.started}>Start counting!</button>
       )}
-      {state.counting && (
+      {machine.counting && (
         <div>
-          <p>{`Count: ${state.context.count}`}</p>
-          <button onClick={dispatch.incremented}>Increment</button>
-          <button onClick={() => dispatch.set(100)}>Set to 100</button>
+          <p>{`Count: ${machine.context.count}`}</p>
+          <button onClick={machine.incremented}>Increment</button>
+          <button onClick={() => machine.set(100)}>Set to 100</button>
         </div>
       )}
     </div>
@@ -422,37 +422,41 @@ useMachine(
 
 Both functions also receive an object containing the current `state`, `context` and the `dispatch` function. Additionally, `$entry` receives `previousState`, and `$exit` receieves `nextState`.
 
-## State and dispatch
+## The machine object
 
 Implementing the machine is only half the fun. Let's look at how to use the machine in your React components.
 
-The `useMachine` hook returns a tuple of the current state, and a dispatcher object - pretty similar to the regular `useReducer` signature.
+The `useMachine` hook returns an object with all the stuff you need to work with your machine:
 
-```tsx
-const [state, dispatch] = useMachine(...);
-```
+- the current state (and various ways to [match it](#state-matching))
+- the current context
+- pre-bound event dispatchers
 
 ### Dispatching events
 
-Dispatching events is a bit different in Fini, compared to how it works with `useReducer`, `Redux` and `XState`. Instead of dispatching action/event objects, `dispatch` is an object that's predefined with functions to dispatch the various events. Example:
+Dispatching events is a bit different in Fini, compared to how it works with `useReducer`, `Redux` and `XState`. Instead of using a `dispatch` function to dispatch action/event objects, the object returned from `useMachine` provides event functions that are pre-bound to Fini's internal dispatch function. This means you can dispatch events as simple as this:
 
 ```tsx
 type CounterMachine = Machine<{
   counting: State<{
     incremented: never
+    set: number
   }>
 }>
 
-const [state, dispatch] = useMachine<CounterMachine>(...);
+const counterMachine = useMachine<CounterMachine>(...);
 
-return <button onClick={() => dispatch.incremented()}>Increment!</button>
+return <div>
+  <button onClick={() => counterMachine.incremented()}>Increment!</button>
+  <button onClick={() => counterMachine.set(100)}>Set to 100</button>
+</div>
 ```
 
-This is so you won't have to either create action creators or manually write `dispatch({ type: "incremented" })`.
+This is so you won't have to either create action creators or manually write `dispatch({ type: "incremented" })` (this is what happens internally, though!).
 
-### The `state` object
+### The current state
 
-The `state` object contains everything you need to know about the current state of the machine.
+As mentioned, the `machine` object also contains everything you need to know about the current state of the machine.
 
 To examine its properties, it's easiest with an example.
 
@@ -473,7 +477,7 @@ type CounterMachine = Machine<
   { maxCount: number }
 >;
 
-const [state] = useMachine(
+const counterMachine = useMachine(
   {
     idle: {
       started: ({ context }) => ({
@@ -489,7 +493,7 @@ const [state] = useMachine(
 );
 ```
 
-`console.log(state)` will output
+Ignoring event dispatching functions, `console.log(counterMachine)` will output
 
 ```js
 {
@@ -506,7 +510,7 @@ const [state] = useMachine(
 }
 ```
 
-If we were to run `dispatch.started()`, `state` would look like this:
+If we were to run `counterMachine.started()`, `machine` would look like this:
 
 ```js
 {
@@ -522,33 +526,35 @@ If we were to run `dispatch.started()`, `state` would look like this:
 
 ### State matching
 
-In this example, we also have a state-specific context, i.e. `{ count: 0 }`. Since Fini tries to protect you from run-time errors, you cannot access `state.context.count` without first checking that you're in the `counting` state:
+In the previous example, we also had a state-specific context, i.e. `{ count: 0 }`. Since Fini tries to protect you from run-time errors, you cannot access `counterMachine.context.count` without first checking that you're in the `counting` state:
 
 ```tsx
-console.log(state.context.count); // ❌
+console.log(counterMachine.context.count); // ❌
 
-if (state.current === "counting") {
-  console.log(state.context.count); // ✅
+if (counterMachine.current === "counting") {
+  console.log(counterMachine.context.count); // ✅
 }
 
-if (state.counting) {
-  console.log(state.context.count); // ✅
+if (counterMachine.counting) {
+  console.log(counterMachine.context.count); // ✅
 }
 ```
 
-Meanwhile, `state.context.maxCount` is "globally" defined, and is accessible in all states.
+Meanwhile, `counterMachine.context.maxCount` is "globally" defined, and is accessible in all states.
 
 Finally, these state matchers are also very handing when determining what to render:
 
 ```tsx
 return (
   <div>
-    {state.idle && <button onClick={dispatch.started}>Start counting!</button>}
-    {state.counting && (
+    {counterMachine.idle && (
+      <button onClick={counterMachine.started}>Start counting!</button>
+    )}
+    {counterMachine.counting && (
       <div>
-        <p>{`Count: ${state.context.count}`}</p>
-        <button onClick={dispatch.incremented}>Increment</button>
-        <button onClick={() => dispatch.set(100)}>Set to 100</button>
+        <p>{`Count: ${counterMachine.context.count}`}</p>
+        <button onClick={counterMachine.incremented}>Increment</button>
+        <button onClick={() => counterMachine.set(100)}>Set to 100</button>
       </div>
     )}
   </div>
@@ -649,7 +655,7 @@ type LoginMachine = Machine<
 >;
 ```
 
-If the same properties are defined both globally and for a state, Fini will prefer the state-specific context, _if_ it is currently in that state.
+If the same properties are defined both globally and for a state, Fini will prefer the state-specific context, _if_ the machine is currently in that state.
 
 In our case, we'll use email and password throughout most of the state, so we'll just define it for the entire machine (the second method).
 
@@ -673,14 +679,14 @@ type LoginMachine = Machine<
 >;
 
 const LoginComponent = () => {
-  const [state, dispatch] = useMachine<LoginMachine>({});
+  const loginMachine = useMachine<LoginMachine>({});
 };
 ```
 
 To keep TypeScript from complaining too much, I also like to provide the initial values right away:
 
 ```tsx
-const [state, dispatch] = useMachine<LoginMachine>(
+const loginMachine = useMachine<LoginMachine>(
   {},
   {
     state: "input",
@@ -697,7 +703,7 @@ Tip: If it weren't for `email` and `password` being required, we could just have
 Next we'll add the `input` state and the `emailChanged` event handler:
 
 ```tsx
-const [state, dispatch] = useMachine<LoginMachine>(
+const loginMachine = useMachine<LoginMachine>(
   {
     input: {
       emailChanged: (machine, payload) => ({
@@ -727,7 +733,7 @@ As you can see, `emailChanged` accepts a function where two parameters are provi
 The purpose of the function is to return the next state. In our case, we're not actually going into a new state - we're only updating the context. For cases like this, Fini allows you to simply just return the updated context object directly, instead of explicitly specifying what state we're in:
 
 ```tsx
-const [state, dispatch] = useMachine<LoginMachine>(
+const loginMachine = useMachine<LoginMachine>(
   {
     input: {
       emailChanged: (machine, payload) => ({
@@ -749,7 +755,7 @@ const [state, dispatch] = useMachine<LoginMachine>(
 Let's add the `passwordChanged` event handler as well (and make things a bit more readably, while we're at it):
 
 ```tsx
-const [state, dispatch] = useMachine<LoginMachine>(
+const loginMachine = useMachine<LoginMachine>(
   {
     input: {
       emailChanged: ({ context }, email) => ({
@@ -776,16 +782,16 @@ Let's also quickly hook it up with some input fields so we can see how interacti
 
 ```tsx
 const LoginComponent = () => {
-  const [state, dispatch] = useMachine<LoginMachine>(...)
+  const loginMachine = useMachine<LoginMachine>(...)
 
   return <div>
     <input
-      value={state.context.email}
-      onChange={event => dispatch.emailChanged(event.target.value)}
+      value={loginMachine.context.email}
+      onChange={event => loginMachine.emailChanged(event.target.value)}
     />
     <input
-      value={state.context.password}
-      onChange={event => dispatch.passwordChanged(event.target.value)}
+      value={loginMachine.context.password}
+      onChange={event => loginMachine.passwordChanged(event.target.value)}
     />
   </div>
 }
@@ -826,7 +832,7 @@ We have also added a second state. How exciting! We'll head right over to our im
 
 ```tsx
 const LoginComponent = () => {
-  const [state, dispatch] = useMachine<LoginMachine>(
+  const loginMachine = useMachine<LoginMachine>(
     {
       input: {
         emailChanged: ({ context }, email) => ({
@@ -855,14 +861,14 @@ const LoginComponent = () => {
   return (
     <div>
       <input
-        value={state.context.email}
-        onChange={event => dispatch.emailChanged(event.target.value)}
+        value={loginMachine.context.email}
+        onChange={event => loginMachine.emailChanged(event.target.value)}
       />
       <input
-        value={state.context.password}
-        onChange={event => dispatch.passwordChanged(event.target.value)}
+        value={loginMachine.context.password}
+        onChange={event => loginMachine.passwordChanged(event.target.value)}
       />
-      <button onClick={dispatch.submitted}>Submit</button>
+      <button onClick={loginMachine.submitted}>Submit</button>
     </div>
   );
 };
@@ -873,7 +879,7 @@ There are a couple of new things to go over here. First of all, we're using a st
 You might however notice that something is missing: we're not actually doing any requests to the server! Let's go right ahead and create our first _side-effect_ 💯
 
 ```tsx
-const [state, dispatch] = useMachine<LoginMachine>(
+const loginMachine = useMachine<LoginMachine>(
   {
     input: {
       emailChanged: ({ context }, email) => ({
@@ -943,7 +949,7 @@ type LoginMachine = Machine<
 
 ...
 
-const [state, dispatch] = useMachine<LoginMachine>(
+const loginMachine = useMachine<LoginMachine>(
   {
     input: {
       emailChanged: ({ context }, email) => ({
@@ -997,36 +1003,36 @@ const [state, dispatch] = useMachine<LoginMachine>(
 
 There's a couple of things going on here. Let's talk about the _implementation_ of the `loggedIn` state first. Immediately, you might notice another shorthand syntax for defining the next state. That is, simply declaring an object directly on the event, instead of returning it from a function. Neat!
 
-Then there's the schema definition. This is a prime example of state-specific context: the `user` object is only available if we're in the `loggedIn` state, and Fini allows us to model that with ease! If we're attempting to access `state.context.user` without checking that we're in the `loggedIn` state first, TypeScript will do all kinds of yelling at us. Instead, let's have a look at how we can show and hide the correct parts of our UI based on the state.
+Then there's the schema definition. This is a prime example of state-specific context: the `user` object is only available if we're in the `loggedIn` state, and Fini allows us to model that with ease! If we're attempting to access `loginMachine.context.user` without checking that we're in the `loggedIn` state first, TypeScript will do all kinds of yelling at us. Instead, let's have a look at how we can show and hide the correct parts of our UI based on the state.
 
-Fini gives us a couple of ways to check the current state. The first one is using the `state.current` property, which can be any of the state names. In our case that would be `"input" | "submitting" | "loggedIn"`, so a check would look like this: `state.current === "loggedIn"`.
+Fini gives us a couple of ways to check the current state. The first one is using the `loginMachine.current` property, which can be any of the state names. In our case that would be `"input" | "submitting" | "loggedIn"`, so a check would look like this: `loginMachine.current === "loggedIn"`.
 
-The second way is simply doing `state.loggedIn`, which returns `true`/`false` depending on whether the state is active.
+The second way is simply doing `loginMachine.loggedIn`, which returns `true`/`false` depending on whether the state is active.
 
 ```tsx
 const LoginComponent = () => {
-  const [state, dispatch] = useMachine<LoginMachine>(...);
+  const loginMachine = useMachine<LoginMachine>(...);
 
   return (
     <div>
       {
-        state.input && <div>
+        loginMachine.input && <div>
           <input
-            value={state.context.email}
-            onChange={event => dispatch.emailChanged(event.target.value)}
+            value={loginMachine.context.email}
+            onChange={event => loginMachine.emailChanged(event.target.value)}
           />
           <input
-            value={state.context.password}
-            onChange={event => dispatch.passwordChanged(event.target.value)}
+            value={loginMachine.context.password}
+            onChange={event => loginMachine.passwordChanged(event.target.value)}
           />
-          <button onClick={dispatch.submitted}>Submit</button>
+          <button onClick={loginMachine.submitted}>Submit</button>
         </div>
       }
-      { state.current === "submitting" && <p>Loading user...</p> }
+      { loginMachine.current === "submitting" && <p>Loading user...</p> }
       {
-        state.loggedIn && <div>
-          <p>Welcome, {state.context.user.name}!</p>
-          <button onClick={dispatch.loggedOut} >Log out</button>
+        loginMachine.loggedIn && <div>
+          <p>Welcome, {loginMachine.context.user.name}!</p>
+          <button onClick={loginMachine.loggedOut}>Log out</button>
         </div>
       }
     </div>
@@ -1067,7 +1073,7 @@ type LoginMachine = Machine<
 >;
 
 const LoginComponent = () => {
-  const [state, dispatch] = useMachine<LoginMachine>(
+  const loginMachine = useMachine<LoginMachine>(
     {
       input: {
         emailChanged: ({ context }, email) => ({
@@ -1120,24 +1126,24 @@ const LoginComponent = () => {
 
   return (
     <div>
-      {state.input && (
+      {loginMachine.input && (
         <div>
           <input
-            value={state.context.email}
-            onChange={event => dispatch.emailChanged(event.target.value)}
+            value={loginMachine.context.email}
+            onChange={event => loginMachine.emailChanged(event.target.value)}
           />
           <input
-            value={state.context.password}
-            onChange={event => dispatch.passwordChanged(event.target.value)}
+            value={loginMachine.context.password}
+            onChange={event => loginMachine.passwordChanged(event.target.value)}
           />
-          <button onClick={dispatch.submitted}>Submit</button>
+          <button onClick={loginMachine.submitted}>Submit</button>
         </div>
       )}
-      {state.current === "submitting" && <p>Loading user...</p>}
-      {state.loggedIn && (
+      {loginMachine.current === "submitting" && <p>Loading user...</p>}
+      {loginMachine.loggedIn && (
         <div>
-          <p>Welcome, {state.context.user.name}!</p>
-          <button onClick={dispatch.loggedOut}>Log out</button>
+          <p>Welcome, {loginMachine.context.user.name}!</p>
+          <button onClick={loginMachine.loggedOut}>Log out</button>
         </div>
       )}
     </div>

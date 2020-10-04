@@ -13,10 +13,10 @@ test("string shorthand initial state", () => {
       "a"
     )
   );
-  expect(result.current[0].current).toBe("a");
+  expect(result.current.current).toBe("a");
 
   // context should be defined, even if doesn't have any initial values
-  expect(result.current[0].context).toEqual({});
+  expect(result.current.context).toEqual({});
 });
 
 test("object initial state and context", () => {
@@ -34,8 +34,8 @@ test("object initial state and context", () => {
       { state: "a", context: { prop: 123 } }
     )
   );
-  expect(result.current[0].current).toBe("a");
-  expect(result.current[0].context.prop).toBe(123);
+  expect(result.current.current).toBe("a");
+  expect(result.current.context.prop).toBe(123);
 });
 
 test("string shorthand state transition", () => {
@@ -59,10 +59,10 @@ test("string shorthand state transition", () => {
   );
 
   act(() => {
-    result.current[1].p();
+    result.current.p();
   });
 
-  expect(result.current[0].current).toBe("b");
+  expect(result.current.current).toBe("b");
 });
 
 test("object state transition", () => {
@@ -86,10 +86,10 @@ test("object state transition", () => {
   );
 
   act(() => {
-    result.current[1].p();
+    result.current.p();
   });
 
-  expect(result.current[0].current).toBe("b");
+  expect(result.current.current).toBe("b");
 });
 
 test("shorthand context update", () => {
@@ -114,13 +114,13 @@ test("shorthand context update", () => {
   );
 
   act(() => {
-    result.current[1].p();
+    result.current.p();
   });
 
-  expect(result.current[0].context.prop).toBe("new value");
+  expect(result.current.context.prop).toBe("new value");
 
   // shouldn't change state
-  expect(result.current[0].current).toBe("a");
+  expect(result.current.current).toBe("a");
 });
 
 test("context and state update object", () => {
@@ -147,11 +147,11 @@ test("context and state update object", () => {
   );
 
   act(() => {
-    result.current[1].p();
+    result.current.p();
   });
 
-  expect(result.current[0].current).toBe("b");
-  expect(result.current[0].context.prop).toBe("new value");
+  expect(result.current.current).toBe("b");
+  expect(result.current.context.prop).toBe("new value");
 });
 
 test("string shorthand state transition by function", () => {
@@ -175,10 +175,10 @@ test("string shorthand state transition by function", () => {
   );
 
   act(() => {
-    result.current[1].p();
+    result.current.p();
   });
 
-  expect(result.current[0].current).toBe("b");
+  expect(result.current.current).toBe("b");
 });
 
 test("object state transition by function", () => {
@@ -204,10 +204,11 @@ test("object state transition by function", () => {
   );
 
   act(() => {
-    result.current[1].p();
+    result.current.p();
+    result.current.p();
   });
 
-  expect(result.current[0].current).toBe("b");
+  expect(result.current.current).toBe("b");
 });
 
 test("shorthand context update by function", () => {
@@ -232,13 +233,13 @@ test("shorthand context update by function", () => {
   );
 
   act(() => {
-    result.current[1].p();
+    result.current.p();
   });
 
-  expect(result.current[0].context.prop).toBe("new value");
+  expect(result.current.context.prop).toBe("new value");
 
   // shouldn't change state
-  expect(result.current[0].current).toBe("a");
+  expect(result.current.current).toBe("a");
 });
 
 test("context and state update object by function", () => {
@@ -265,11 +266,11 @@ test("context and state update object by function", () => {
   );
 
   act(() => {
-    result.current[1].p();
+    result.current.p();
   });
 
-  expect(result.current[0].context.prop).toBe("new value");
-  expect(result.current[0].current).toBe("b");
+  expect(result.current.context.prop).toBe("new value");
+  expect(result.current.current).toBe("b");
 });
 
 test("void event handler", () => {
@@ -288,9 +289,9 @@ test("void event handler", () => {
       "state1"
     )
   );
-  act(() => result.current[1].event1());
+  act(() => result.current.event1());
 
-  expect(result.current[0].current).toBe("state1");
+  expect(result.current.current).toBe("state1");
 });
 
 test("dispatch event with payload", () => {
@@ -317,10 +318,10 @@ test("dispatch event with payload", () => {
   );
 
   act(() => {
-    result.current[1].p("new value");
+    result.current.p("new value");
   });
 
-  expect(result.current[0].context.prop).toBe("new value");
+  expect(result.current.context.prop).toBe("new value");
 });
 
 test("event handler with side-effect", () => {
@@ -346,7 +347,7 @@ test("event handler with side-effect", () => {
   );
 
   act(() => {
-    result.current[1].p();
+    result.current.p();
   });
 
   expect(value.current).toBe("new value");
@@ -428,10 +429,10 @@ test("exit and entry effect", async () => {
   expect(entryEffect).not.toHaveBeenCalled();
 
   act(() => {
-    result.current[1].next();
+    result.current.next();
   });
 
-  expect(result.current[0].current).toBe("b");
+  expect(result.current.current).toBe("b");
   expect(exitEffect).toHaveBeenCalledTimes(1);
 
   expect(entryEffect).toHaveBeenCalledTimes(1);
@@ -440,7 +441,7 @@ test("exit and entry effect", async () => {
   expect(effects).toEqual(["exit", "entry"]);
 
   act(() => {
-    result.current[1].previous();
+    result.current.previous();
   });
 
   // no effects should have been triggered again
@@ -449,7 +450,7 @@ test("exit and entry effect", async () => {
   expect(effects).toEqual(["exit", "entry"]);
 
   act(() => {
-    result.current[1].next();
+    result.current.next();
   });
 
   // effects should run again
@@ -503,37 +504,37 @@ test("simple counter example", () => {
   );
 
   act(() => {
-    result.current[1].increment();
+    result.current.increment();
   });
 
-  expect(result.current[0].context.count).toBe(1);
+  expect(result.current.context.count).toBe(1);
 
   act(() => {
-    result.current[1].increment();
-    result.current[1].increment();
-    result.current[1].increment();
-    result.current[1].increment();
-    result.current[1].decrement();
+    result.current.increment();
+    result.current.increment();
+    result.current.increment();
+    result.current.increment();
+    result.current.decrement();
   });
 
-  expect(result.current[0].context.count).toBe(4);
+  expect(result.current.context.count).toBe(4);
 
   act(() => {
-    result.current[1].increment();
-    result.current[1].increment();
-    result.current[1].increment();
-    result.current[1].increment();
+    result.current.increment();
+    result.current.increment();
+    result.current.increment();
+    result.current.increment();
   });
 
-  expect(result.current[0].context.count).toBe(7);
-  expect(result.current[0].current).toBe("maxedOut");
+  expect(result.current.context.count).toBe(7);
+  expect(result.current.current).toBe("maxedOut");
 
   act(() => {
-    result.current[1].reset();
+    result.current.reset();
   });
 
-  expect(result.current[0].context.count).toBe(0);
-  expect(result.current[0].current).toBe("counting");
+  expect(result.current.context.count).toBe(0);
+  expect(result.current.current).toBe("counting");
 });
 
 test("async thing", async () => {
@@ -572,13 +573,13 @@ test("async thing", async () => {
       }, 300)
     );
 
-  const { result, waitForNextUpdate } = renderHook(() => {
-    const [state, dispatch] = useMachine<FetcherMachine>(
+  const { result, waitForNextUpdate } = renderHook(() =>
+    useMachine<FetcherMachine>(
       {
         initial: {
           fetch: ({ exec }, id) => {
             exec(
-              () =>
+              dispatch =>
                 void fetchUser(id).then(user => {
                   dispatch.succeeded(user);
                 })
@@ -612,7 +613,7 @@ test("async thing", async () => {
         success: {
           refetch: ({ context, exec }) => {
             exec(
-              () =>
+              dispatch =>
                 void fetchUser(context.params.id).then(user => {
                   dispatch.succeeded(user);
                 })
@@ -626,30 +627,28 @@ test("async thing", async () => {
         error: {},
       },
       "initial"
-    );
-
-    return [state, dispatch] as const;
-  });
+    )
+  );
 
   act(() => {
-    result.current[1].fetch("test");
+    result.current.fetch("test");
   });
 
-  expect(result.current[0].current).toBe("fetching");
+  expect(result.current.current).toBe("fetching");
 
   await waitForNextUpdate();
 
-  expect(result.current[0].current).toBe("success");
+  expect(result.current.current).toBe("success");
 
   act(() => {
-    result.current[1].refetch();
+    result.current.refetch();
   });
 
-  expect(result.current[0].current).toBe("fetching");
+  expect(result.current.current).toBe("fetching");
 
   await waitForNextUpdate();
 
-  expect(result.current[0].current).toBe("success");
+  expect(result.current.current).toBe("success");
 });
 
 test("login machine", async () => {
@@ -707,9 +706,9 @@ test("login machine", async () => {
       }, 300)
     );
 
-  const { result, waitForNextUpdate } = renderHook(() => {
+  const { result, waitForNextUpdate } = renderHook(() =>
     // Next, let's implement the machine
-    const [state, dispatch] = useMachine<LoginMachine>(
+    useMachine<LoginMachine>(
       {
         // Implement the `initial` state,
         // which is simply an object with event handlers as properties
@@ -776,43 +775,41 @@ test("login machine", async () => {
         },
       },
       "initial"
-    );
-
-    return [state, dispatch] as const;
-  });
+    )
+  );
 
   act(() => {
-    result.current[1].login({ email: "test@example.com", password: "hunter2" });
+    result.current.login({ email: "test@example.com", password: "hunter2" });
   });
 
-  expect(result.current[0].current).toBe("fetching");
+  expect(result.current.current).toBe("fetching");
 
   await waitForNextUpdate();
 
-  expect(result.current[0].current).toBe("loggedIn");
+  expect(result.current.current).toBe("loggedIn");
 
   act(() => {
-    result.current[1].retry();
+    result.current.retry();
   });
 
-  expect(result.current[0].current).toBe("loggedIn");
+  expect(result.current.current).toBe("loggedIn");
   // @ts-expect-error
-  expect(result.current[0].context.user).toEqual({ id: "123", name: "Fini" });
+  expect(result.current.context.user).toEqual({ id: "123", name: "Fini" });
 
   act(() => {
-    result.current[1].logout();
+    result.current.logout();
   });
 
-  expect(result.current[0].current).toBe("initial");
+  expect(result.current.current).toBe("initial");
   succeed = false;
 
   act(() => {
-    result.current[1].login({ email: "test@example.com", password: "hunter2" });
+    result.current.login({ email: "test@example.com", password: "hunter2" });
   });
 
   await waitForNextUpdate();
 
-  expect(result.current[0].current).toBe("error");
+  expect(result.current.current).toBe("error");
 });
 
 test("counter example with enter and exit effects", () => {
@@ -862,9 +859,9 @@ test("counter example with enter and exit effects", () => {
   );
 
   act(() => {
-    result.current[1].start();
+    result.current.start();
   });
 
   // entry successfully dispatched action
-  expect(result.current[0].context.count).toBe(1);
+  expect(result.current.context.count).toBe(1);
 });
