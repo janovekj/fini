@@ -7,13 +7,14 @@ Small and capable state machine library for React.
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
+
 - [Motivation](#motivation)
 - [Features](#features)
 - [Quick start](#quick-start)
 - [Concepts](#concepts)
   - [Schema definition](#schema-definition)
   - [Event handlers and transitions](#event-handlers-and-transitions)
-  - [State and dispatch](#state-and-dispatch)
+  - [The machine object](#the-machine-object)
   - [Summary and next steps](#summary-and-next-steps)
 - [Step-by-step tutorial](#step-by-step-tutorial)
   - [Defining the schema](#defining-the-schema)
