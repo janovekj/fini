@@ -398,6 +398,30 @@ useMachine({
 });
 ```
 
+### Life cycle effects
+
+Sometimes you'll want to define effects that should run every time a state is entered or exited. Fini allows you to achieve this by specifying the special `$entry` and `$exit` events, respectively.
+
+```tsx
+useMachine(
+  {
+    state1: {
+      // will be run every time `state1` is entered
+      // is also run if state is the initial state
+      $entry: () => console.log("Entered state1"),
+
+      // will be run every time `state1` is exited
+      $exit: () => console.log("Exited state1"),
+    },
+  },
+  "state1"
+);
+```
+
+`$entry` and `$exit` are pretty similar to regular event handler functions, except they don't return a new state. They are only for running effects, which is also why you don't need to wrap them in the `exec` function - this is done automatically behind the scenes.
+
+Both functions also receive an object containing the current `state`, `context` and the `dispatch` function. Additionally, `$entry` receives `previousState`, and `$exit` receieves `nextState`.
+
 ## State and dispatch
 
 Implementing the machine is only half the fun. Let's look at how to use the machine in your React components.

@@ -352,6 +352,112 @@ test("event handler with side-effect", () => {
   expect(value.current).toBe("new value");
 });
 
+test("entry effect on initial state", () => {
+  type M = Machine<{
+    a: State;
+  }>;
+
+  const entryEffect: any = jest.fn((machine: any) => {
+    expect(machine.previousState).toBe(undefined);
+    expect(machine.state).toBe("a");
+    expect(machine.context).toEqual({});
+  });
+
+  renderHook(() =>
+    useMachine<M>(
+      {
+        a: {
+          $entry: entryEffect,
+        },
+      },
+      "a"
+    )
+  );
+
+  expect(entryEffect).toHaveBeenCalledTimes(1);
+});
+
+test("exit and entry effect", async () => {
+  type M = Machine<{
+    a: State<{ next: never }>;
+    b: State<{ previous: never }, { prop: string }>;
+  }>;
+
+  const effects: string[] = [];
+
+  const exitEffect = jest.fn((machine: any) => {
+    effects.push("exit");
+    // should be called with the updated context
+    expect(machine.context.prop).toEqual("test");
+    expect(machine.nextState).toBe("b");
+    expect(machine.state).toBe("a");
+    expect(machine.dispatch.next).toBeDefined();
+  });
+
+  const entryEffect = jest.fn((machine: any) => {
+    effects.push("entry");
+    // should be called with the updated context
+    expect(machine.context.prop).toEqual("test");
+    expect(machine.previousState).toBe("a");
+    expect(machine.state).toBe("b");
+    expect(machine.dispatch.next).toBeDefined();
+  });
+
+  const { result } = renderHook(() =>
+    useMachine<M>(
+      {
+        a: {
+          $exit: exitEffect,
+          next: {
+            state: "b",
+            context: {
+              prop: "test",
+            },
+          },
+        },
+        b: {
+          $entry: entryEffect,
+          previous: "a",
+        },
+      },
+      "a"
+    )
+  );
+
+  expect(exitEffect).not.toHaveBeenCalled();
+  expect(entryEffect).not.toHaveBeenCalled();
+
+  act(() => {
+    result.current[1].next();
+  });
+
+  expect(result.current[0].current).toBe("b");
+  expect(exitEffect).toHaveBeenCalledTimes(1);
+
+  expect(entryEffect).toHaveBeenCalledTimes(1);
+
+  // should have been called in the correct order
+  expect(effects).toEqual(["exit", "entry"]);
+
+  act(() => {
+    result.current[1].previous();
+  });
+
+  // no effects should have been triggered again
+  expect(exitEffect).toHaveBeenCalledTimes(1);
+  expect(entryEffect).toHaveBeenCalledTimes(1);
+  expect(effects).toEqual(["exit", "entry"]);
+
+  act(() => {
+    result.current[1].next();
+  });
+
+  // effects should run again
+  expect(exitEffect).toHaveBeenCalledTimes(2);
+  expect(entryEffect).toHaveBeenCalledTimes(2);
+  expect(effects).toEqual(["exit", "entry", "exit", "entry"]);
+});
+
 /* #### Various examples #### */
 
 test("simple counter example", () => {
@@ -707,4 +813,58 @@ test("login machine", async () => {
   await waitForNextUpdate();
 
   expect(result.current[0].current).toBe("error");
+});
+
+test("counter example with enter and exit effects", () => {
+  type CounterMachine = Machine<
+    {
+      idle: State<{ start: never }>;
+      counting: State<{
+        increment: never;
+        pause: never;
+        stop: never;
+      }>;
+      paused: State<{ resume: never }>;
+      stopped: State;
+    },
+    { count: number }
+  >;
+
+  const { result } = renderHook(() =>
+    useMachine<CounterMachine>(
+      {
+        idle: {
+          start: {
+            state: "counting",
+            context: {
+              count: 0,
+            },
+          },
+        },
+        counting: {
+          $entry: ({ state, previousState, context, dispatch }) => {
+            console.log(`Entered ${state}, coming from ${previousState}.`);
+            console.log(`Count is ${context.count}`);
+            dispatch.increment();
+          },
+          increment: ({ context }) => ({ count: context.count + 1 }),
+          pause: "paused",
+          stop: "stopped",
+          $exit: ({ nextState }) => console.log(`Heading off to ${nextState}`),
+        },
+        paused: {
+          resume: "counting",
+        },
+        stopped: {},
+      },
+      { state: "idle", context: { count: 0 } }
+    )
+  );
+
+  act(() => {
+    result.current[1].start();
+  });
+
+  // entry successfully dispatched action
+  expect(result.current[0].context.count).toBe(1);
 });

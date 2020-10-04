@@ -23,8 +23,8 @@ type EventMapType = Record<string, any>;
 type ContextType = Record<string, any>;
 
 export type State<
-  EventMap extends EventMapType = {},
-  Context extends ContextType = {}
+  EventMap extends EventMapType = EventMapType,
+  Context extends ContextType = ContextType
 > = {
   context: Context;
   on: EventMap;
@@ -121,10 +121,29 @@ type EventHandler<S extends StateMap, Current extends keyof S, P extends any> =
   | Transition<S, Current>
   | CreateTranstionFn<S, Current, P>;
 
+type StateEntryEffect<S extends StateMap, Current extends keyof S> = (machine: {
+  state: Current;
+  previousState?: keyof S;
+  context: S[Current]["context"];
+  dispatch: Dispatcher<S>;
+}) => void;
+
+type StateExitEffect<S extends StateMap, Current extends keyof S> = (machine: {
+  state: Current;
+  nextState: keyof S;
+  context: S[Current]["context"];
+  dispatch: Dispatcher<S>;
+}) => void;
+
+type EventHandlerMap<S extends StateMap, K extends keyof S> = {
+  [E in keyof S[K]["on"]]: EventHandler<S, K, S[K]["on"][E]>;
+} & {
+  $entry?: StateEntryEffect<S, K>;
+  $exit?: StateExitEffect<S, K>;
+};
+
 type Schema<S extends StateMap> = {
-  [K in keyof S]: {
-    [E in keyof S[K]["on"]]: EventHandler<S, K, S[K]["on"][E]>;
-  };
+  [K in keyof S]: EventHandlerMap<S, K>;
 };
 
 type EventObject<S extends StateMap> = {
@@ -225,9 +244,22 @@ export const useMachine = <S extends StateMap>(
       return state;
     }
 
-    const currentNode = schema[state.state];
+    const { $exit: exitEffect, $entry, ...eventHandlerMap } = schema[
+      state.state
+    ];
 
-    const eventHandler = currentNode[event.type];
+    if (!eventHandlerMap) {
+      if (exitEffect) {
+        dev.error(
+          `Exit effect was found on state '${state.state}' where no event handlers are defined. This is nonsensical behaviour, as the state can never be exited.`
+        );
+      }
+
+      return state;
+    }
+
+    // @ts-ignore
+    const eventHandler = eventHandlerMap[event.type];
 
     if (!eventHandler) {
       dev.warn(
@@ -251,33 +283,93 @@ export const useMachine = <S extends StateMap>(
 
     const update = transition;
 
-    if (isObject(update)) {
-      return "state" in update
-        ? update
-        : {
+    const getNextState = () => {
+      if (isObject(update)) {
+        //@ts-ignore
+        return "state" in update ? update.state : state.state;
+      } else if (typeof update === "string" && update in schema) {
+        return update;
+      } else if (update === undefined) {
+        return state.state;
+      } else {
+        return undefined;
+      }
+    };
+
+    const getNextContext = () => {
+      if (isObject(update)) {
+        return "state" in update
+          ? // @ts-ignore
+            update.context
+          : update;
+      } else if (typeof update === "string" && update in schema) {
+        return state.context;
+      } else if (update === undefined) {
+        return state.context;
+      } else {
+        return undefined;
+      }
+    };
+
+    const nextState = getNextState();
+
+    const nextContext = getNextContext();
+
+    if (nextState && nextState !== state.state) {
+      const { $entry: nextStateEntryEffect } = schema[nextState];
+      if (exitEffect || nextStateEntryEffect) {
+        exec(() => {
+          exitEffect?.({
+            context: nextContext,
+            // @ts-ignore
+            nextState,
+            dispatch: dispatcher,
             state: state.state,
-            context: update,
-          };
-    } else if (typeof update === "string" && update in schema) {
-      return {
-        state: update,
-        context: state.context,
-      };
-    } else if (update === undefined) {
-      return state;
-    } else {
-      dev.error(`unknown type of EventNode`, update);
+          });
+
+          nextStateEntryEffect?.({
+            context: nextContext,
+            previousState: state.state,
+            dispatch: dispatcher,
+            // @ts-ignore
+            state: nextState,
+          });
+        });
+      }
     }
+
+    if (!nextState && !nextContext) {
+      dev.error(`unknown type of EventNode`, update);
+    } else {
+      return {
+        state: nextState,
+        context: nextContext,
+      };
+    }
+
     return state;
   };
 
-  const initial: ReducerState<S> = (parseInitialState(
-    schema,
-    initialState
-  ) as unknown) as ReducerState<S>;
-
   // @ts-ignore
-  const [reducerState, dispatch] = useEffectReducer(reducer, initial);
+  const [reducerState, dispatch] = useEffectReducer(reducer, exec => {
+    const initial: ReducerState<S> = (parseInitialState(
+      schema,
+      initialState
+    ) as unknown) as ReducerState<S>;
+
+    const initialStateNode = schema[initial.state];
+    if (initialStateNode.$entry) {
+      exec(
+        () =>
+          initialStateNode.$entry &&
+          initialStateNode.$entry({
+            ...initial,
+            dispatch: dispatcher,
+          })
+      );
+    }
+    return initial;
+  });
 
   const state: CurrentState<S> = {
     current: reducerState.state,
