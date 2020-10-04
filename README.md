@@ -361,7 +361,7 @@ useMachine({
   idle: {
     login: ({ context, exec }, userId) => {
       exec(() => {
-        fetchUser(userId).then(user => console.log(user));
+        fetchUser(userId).then((user) => console.log(user));
       });
       return "fetchingUser";
     },
@@ -376,8 +376,8 @@ As you can see, `exec` accepts a function that triggers the side-effects. The fu
 useMachine({
   idle: {
     login: ({ context, exec }, userId) => {
-      exec(dispatch => {
-        fetchUser(userId).then(user => dispatch.success(user));
+      exec((dispatch) => {
+        fetchUser(userId).then((user) => dispatch.success(user));
       });
       return "fetchingUser";
     },
