@@ -1,8 +1,8 @@
 module.exports = {
   title: "Fini",
   tagline: "Simple and Capable State Machines for React",
-  url: "https://janovekj.github.io",
-  baseUrl: "/fini/",
+  url: "https://fini.js.org",
+  baseUrl: "/",
   onBrokenLinks: "throw",
   favicon: "img/fini_plain_regular.svg",
   organizationName: "janovekj",
