@@ -1,23 +1,8 @@
-![Fini](https://fini.js.org/img/fini_normal.svg)
-
-Small and capable state machine library for React.
+[![Fini logo](https://fini.js.org/img/fini_normal.svg)](https://fini.js.org)
 
 [![npm version](http://img.shields.io/npm/v/fini.svg?style=flat)](https://npmjs.org/package/fini "View this project on npm") [![GitHub license](https://img.shields.io/github/license/janovekj/fini)](https://github.com/janovekj/fini/blob/master/LICENSE "MIT license")
 
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-
-- [Motivation](#motivation)
-- [Features](#features)
-- [Quick start](#quick-start)
-- [Concepts](#concepts)
-  - [Schema definition](#schema-definition)
-  - [Event handlers and transitions](#event-handlers-and-transitions)
-  - [The machine object](#the-machine-object)
-  - [Next steps](#next-steps)
-- [Resources](#resources)
-
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+Small and capable state machines for React.
 
 # Motivation
 
@@ -27,9 +12,9 @@ You might like Fini if you
 
 - want something slightly more structured than the regular reducer
 - enjoy typing 😉
-- want to get into basic state machines
+- want to get into the basics of state machines
 
-# Features
+# Key features
 
 - A plain old finite state machine hook
 - Type-safe all the way with state-specific context types (typestates)
