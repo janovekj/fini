@@ -1,8 +1,6 @@
 ---
 id: step-by-step-tutorial
 title: Step-by-step tutorial
-sidebar_label: Step-by-step tutorial
-slug: /
 ---
 
 Creating stuff is the best way to showcase Fini's features, so let's do exactly that. We'll build a state machine step-by-step to support a simple login sequence.
@@ -38,7 +36,6 @@ import { Machine, State } from "fini";
 
 type LoginMachine = Machine<{
   input: State<{
-    // highlight-next-line
     changeEmail: string;
   }>;
 }>;

@@ -554,7 +554,7 @@ return (
 
 ## Next steps
 
-Hopefully you've gotten a good grasp on how Fini works. If not, try reading the [step-by-step tutorial](docs/step-by-step-tutorial.md#step-by-step-tutorial), which gives you the different parts of Fini in bite-sized chunks. Also feel free to create an issue if you see something that could be explained better. Fini is meant to be easy to pickup by anyone, and that all starts with good docs.
+Hopefully you've gotten a good grasp on how Fini works. If not, try reading the [step-by-step tutorial](https://fini.js.org/step-by-step-tutorial), which gives you the different parts of Fini in bite-sized chunks. Also feel free to create an issue if you see something that could be explained better. Fini is meant to be easy to pickup by anyone, and that all starts with good docs.
 
 If you're not convinced by Fini or state machines in general, keep reading for some resources which may or may not change your mind.
 
