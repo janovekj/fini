@@ -25,7 +25,6 @@
     "test": "tsdx test",
     "lint": "tsdx lint",
     "prepare": "tsdx build",
-    "doctoc": "doctoc README.md --maxlevel 2 && prettier README.md --write",
     "release": "np --no-cleanup"
   },
   "peerDependencies": {
@@ -43,7 +42,6 @@
     "@arkweid/lefthook": "^0.7.2",
     "@testing-library/react-hooks": "^3.4.1",
     "@types/react": "^16.9.46",
-    "doctoc": "^1.4.0",
     "np": "^6.5.0",
     "prettier": "^2.1.2",
     "react-test-renderer": "^16.13.1",
