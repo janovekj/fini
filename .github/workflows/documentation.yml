@@ -1,12 +1,12 @@
-name: documentation
+name: build & deploy site
 
 on:
   pull_request:
-    branches: [documentation]
+    branches: [master]
     paths:
       - "site/**"
   push:
-    branches: [documentation]
+    branches: [master]
     paths:
       - "site/**"
 
