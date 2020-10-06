@@ -14,7 +14,7 @@ module.exports = {
     navbar: {
       logo: {
         alt: "Fini logo",
-        src: "img/fini_logo.svg",
+        src: "img/fini_normal.svg",
       },
       items: [
         {
