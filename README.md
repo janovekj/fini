@@ -1,4 +1,4 @@
-# Fini
+![Fini](https://fini.js.org/img/fini_normal.svg)
 
 Small and capable state machine library for React.
 
