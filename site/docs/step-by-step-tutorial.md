@@ -1,4 +1,7 @@
-# Step-by-step tutorial
+---
+id: step-by-step-tutorial
+title: Step-by-step tutorial
+---
 
 Creating stuff is the best way to showcase Fini's features, so let's do exactly that. We'll build a state machine step-by-step to support a simple login sequence.
 
@@ -38,7 +41,7 @@ type LoginMachine = Machine<{
 }>;
 ```
 
-Each event name is mapped to a corresponding _payload type_. This refers to the data that we might want to pass along with the event. In our case, we're sending an email, which is a `string`, and `changeEmail` is typed accordingly.
+Each event name is mapped to a corresponding _payload type_. This refers to the data that we might want to pass along with the event. In our case, we're sending an email address, which is a `string`, and `changeEmail` is typed accordingly.
 
 If you're coming from Redux, it's pretty much the exact same as the concept of payloads in action objects (because behind the scenes, this _is_ an action object - Fini just calls them events instead).
 
@@ -293,11 +296,11 @@ const LoginComponent = () => {
     <div>
       <input
         value={loginMachine.context.email}
-        onChange={event => loginMachine.changeEmail(event.target.value)}
+        onChange={(event) => loginMachine.changeEmail(event.target.value)}
       />
       <input
         value={loginMachine.context.password}
-        onChange={event => loginMachine.changePassword(event.target.value)}
+        onChange={(event) => loginMachine.changePassword(event.target.value)}
       />
       <button onClick={loginMachine.submit}>Submit</button>
     </div>
@@ -327,7 +330,7 @@ const loginMachine = useMachine<LoginMachine>(
             method: "POST",
             body: JSON.stringify(context),
           })
-            .then(res => res.json())
+            .then((res) => res.json())
             .then((user: User) => dispatch.success(user));
         });
         return "submitting";
@@ -521,7 +524,7 @@ const LoginComponent = () => {
               method: "POST",
               body: JSON.stringify(context),
             })
-              .then(res => res.json())
+              .then((res) => res.json())
               .then((user: User) => dispatch.success(user));
           });
           return "submitting";
@@ -561,11 +564,13 @@ const LoginComponent = () => {
         <div>
           <input
             value={loginMachine.context.email}
-            onChange={event => loginMachine.changeEmail(event.target.value)}
+            onChange={(event) => loginMachine.changeEmail(event.target.value)}
           />
           <input
             value={loginMachine.context.password}
-            onChange={event => loginMachine.changePassword(event.target.value)}
+            onChange={(event) =>
+              loginMachine.changePassword(event.target.value)
+            }
           />
           <button onClick={loginMachine.submit}>Submit</button>
         </div>
@@ -581,3 +586,37 @@ const LoginComponent = () => {
   );
 };
 ```
+
+---
+
+## Admonitions
+
+:::note
+
+This is a note
+
+:::
+
+:::tip
+
+This is a tip
+
+:::
+
+:::important
+
+This is important
+
+:::
+
+:::caution
+
+This is a caution
+
+:::
+
+:::warning
+
+This is a warning
+
+:::
