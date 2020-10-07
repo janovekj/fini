@@ -1,28 +1,6 @@
-[![Fini logo](https://fini.js.org/img/fini_normal.svg)](https://fini.js.org)
-
-[![npm version](http://img.shields.io/npm/v/fini.svg?style=flat)](https://npmjs.org/package/fini "View this project on npm") [![GitHub license](https://img.shields.io/github/license/janovekj/fini)](https://github.com/janovekj/fini/blob/master/LICENSE "MIT license")
-
-**Small and capable state machines for React.**
-
-Using finite state machines (FSM) is a great way to safely and effectively create complex UI components. Fini aims to lower the bar of getting started with this powerful concept, all while providing the important features you should expect from an FSM library:
-
-- ✅ easy-to-use hook for defining states, transitions and effects
-- ✅ type safety all the way
-- ✅ simple state-matching and event-dispatching from your components
-
-Furthermore, you might like Fini if you
-
-- want something slightly more structured than the regular reducer
-- enjoy typing 😉
-- want to get into the basics of state machines
-
-Sounds great, doesn't it? Head over to [the documentation site](https://fini.js.org), or check out the [quick-ish start](#quick-start) example.
-
-❓ Unfamiliar with state machines? Watch this [great talk by David Khourshid](https://www.youtube.com/watch?v=RqTxtOXcv8Y)!
-
 ---
-
-# Quick-ish start
+title: Quick-ish start
+---
 
 ```bash
 npm install fini
