@@ -1,6 +1,6 @@
 module.exports = {
   title: "Fini",
-  tagline: "Simple and Capable State Machines for React",
+  tagline: "Small and Capable State Machines for React",
   url: "https://fini.js.org",
   baseUrl: "/",
   onBrokenLinks: "throw",
@@ -35,7 +35,7 @@ module.exports = {
       {
         docs: {
           sidebarPath: require.resolve("./sidebars.js"),
-          editUrl: "https://github.com/janovekj/fini/edit/gh-pages/website/",
+          editUrl: "https://github.com/janovekj/fini/edit/master/site/",
           routeBasePath: "/",
         },
         theme: {
