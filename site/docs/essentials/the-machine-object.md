@@ -1,5 +1,5 @@
 ---
-title: The machine object
+title: The Machine Object
 ---
 
 Implementing the machine is only half the fun. Let's look at how to use the machine in your React components.
@@ -25,8 +25,10 @@ type CounterMachine = Machine<{
 const counterMachine = useMachine<CounterMachine>(...);
 
 return <div>
+  // highlight-start
   <button onClick={() => counterMachine.increment()}>Increment!</button>
   <button onClick={() => counterMachine.set(100)}>Set to 100</button>
+  // highlight-end
 </div>
 ```
 
@@ -118,7 +120,7 @@ if (counterMachine.counting) {
 
 Meanwhile, `counterMachine.context.maxCount` is "globally" defined, and is accessible in all states.
 
-Finally, these state matchers are also very handing when determining what to render:
+Finally, these state matchers are also very handy when determining what parts of our UI we should render:
 
 ```tsx
 return (

@@ -1,12 +1,13 @@
 ---
-title: Implementing a basic machine
+title: Implementing a Basic Machine
 ---
 
 We'll import the `useMachine` hook, and give it `LoginMachine` as a type argument, and an empty object which we'll expand shortly:
 
 ```tsx
+// highlight-next-line
 import { Machine, State, useMachine } from "fini";
-≈
+
 type LoginMachine = Machine<
   {
     input: State<{
@@ -18,11 +19,12 @@ type LoginMachine = Machine<
 >;
 
 const LoginComponent = () => {
+  // highlight-next-line
   const loginMachine = useMachine<LoginMachine>({});
 };
 ```
 
-To keep TypeScript from complaining too much, I also like to provide the initial values right away:
+To keep TypeScript from complaining too much, we can provide the initial values right away:
 
 ```tsx
 const loginMachine = useMachine<LoginMachine>(
@@ -37,13 +39,16 @@ const loginMachine = useMachine<LoginMachine>(
 );
 ```
 
-Tip: If it weren't for `email` and `password` being required, we could just have passed in `"input"` as a shorthand, instead of an entire object.
+:::tip
+If it weren't for `email` and `password` being required, we could just have passed in `"input"` as a shorthand, instead of an entire object.
+:::
 
 Next we'll add the `input` state and the `changeEmail` event handler:
 
 ```tsx
 const loginMachine = useMachine<LoginMachine>(
   {
+    // highlight-start
     input: {
       changeEmail: (machine, payload) => ({
         state: "input",
@@ -53,6 +58,7 @@ const loginMachine = useMachine<LoginMachine>(
         },
       }),
     },
+    // highlight-end
   },
   {
     state: "input",
@@ -75,10 +81,12 @@ The purpose of the function is to return the next state. In our case, we're not 
 const loginMachine = useMachine<LoginMachine>(
   {
     input: {
+      // highlight-start
       changeEmail: (machine, payload) => ({
         ...machine.context,
         email: payload,
       }),
+      // highlight-end
     },
   },
   {
@@ -101,10 +109,12 @@ const loginMachine = useMachine<LoginMachine>(
         ...context,
         email,
       }),
+      // highlight-start
       changePassword: ({ context }, password) => ({
         ...context,
         password,
       }),
+      // highlight-end
     },
   },
   {
@@ -124,6 +134,7 @@ const LoginComponent = () => {
   const loginMachine = useMachine<LoginMachine>(...)
 
   return <div>
+    // highlight-start
     <input
       value={loginMachine.context.email}
       onChange={event => loginMachine.changeEmail(event.target.value)}
@@ -132,6 +143,7 @@ const LoginComponent = () => {
       value={loginMachine.context.password}
       onChange={event => loginMachine.changePassword(event.target.value)}
     />
+    // highlight-end
   </div>
 }
 ```

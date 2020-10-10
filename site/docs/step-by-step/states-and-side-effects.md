@@ -1,8 +1,8 @@
 ---
-title: States and side-effects
+title: States and Side-effects
 ---
 
-Moving on, we'll add support for attempting to log in.
+Let's add support for actually logging in.
 
 ```tsx
 type User = {
@@ -15,11 +15,14 @@ type LoginMachine = Machine<
     input: State<{
       changeEmail: string;
       changePassword: string;
+      // highlight-next-line
       submit: never;
     }>;
+    // highlight-start
     submitting: State<{
       success: User;
     }>;
+    // highlight-end
   },
   { email: string; password: string }
 >;
@@ -42,11 +45,14 @@ const LoginComponent = () => {
           ...context,
           password,
         }),
+        // highlight-next-line
         submit: "submitting",
       },
+      // highlight-start
       submitting: {
         success: () => {}, // TODO
       },
+      // highlight-end
     },
     {
       state: "input",
@@ -67,6 +73,7 @@ const LoginComponent = () => {
         value={loginMachine.context.password}
         onChange={(event) => loginMachine.changePassword(event.target.value)}
       />
+      // highlight-next-line
       <button onClick={loginMachine.submit}>Submit</button>
     </div>
   );
@@ -90,6 +97,7 @@ const loginMachine = useMachine<LoginMachine>(
         password,
       }),
       submit: ({ context, exec }) => {
+        // highlight-start
         exec(() => {
           fetch("/api/login", {
             method: "POST",
@@ -98,6 +106,7 @@ const loginMachine = useMachine<LoginMachine>(
             .then((res) => res.json())
             .then((user: User) => dispatch.success(user));
         });
+        // highlight-end
         return "submitting";
       },
     },
@@ -119,7 +128,9 @@ Alongside `context`, all event handlers have an `exec` function at their disposa
 
 In our case, we've given it a simple function that will make a request to our endpoint, and when it resolves, it will dispatch the `success` event. Now we're getting somewhere!
 
-(For simplicity, we're assuming the request will never fail, which you probably shouldn't do in real life. Please don't use this example in production.)
+:::note
+For simplicity, we're assuming the request will never fail, which you probably shouldn't do in real life. Please don't use this example in production.
+:::
 
 Let's set ourselves up for success, and create a transition to the `loggedIn` state:
 
@@ -139,9 +150,12 @@ type LoginMachine = Machine<
     submitting: State<{
       success: User;
     }>;
+    // highlight-start
     loggedIn: State<{
       logOut: never
     }, { user: User }>
+    // highlight-end
+
   },
   { email: string; password: string }
 >;
@@ -171,6 +185,7 @@ const loginMachine = useMachine<LoginMachine>(
         return "submitting";
       },
     },
+    // highlight-start
     submitting: {
       success: ({ context }, user) => ({
         state: "loggedIn",
@@ -189,6 +204,7 @@ const loginMachine = useMachine<LoginMachine>(
         }
       }
     }
+    // highlight-end
   },
   {
     state: "input",

@@ -1,5 +1,5 @@
 ---
-title: Quick-ish start
+title: Quick-ish Start
 ---
 
 ```bash

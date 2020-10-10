@@ -1,5 +1,5 @@
 ---
-title: Finished result
+title: Finished Result
 ---
 
 Finally, the component in its entirety ([CodeSandbox](https://codesandbox.io/s/fini-loginmachine-4ut16)):

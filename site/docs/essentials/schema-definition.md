@@ -1,8 +1,17 @@
 ---
-title: Schema definition
+title: Schema Definition
 ---
 
 Fini aims to make it easy to work with state machines in a type-safe manner. While TypeScript is very good at inferring types automatically, this isn't always enough for some of Fini's features, and thus it is recommended to define a full schema for the machine you're building.
+
+In general, two key benefits can be gained with fully typed machines:
+
+1. Great Intellisense support when implementing and using the machines
+2. Compile-time errors when attempting to access invalid properties for the current state
+
+You _can_ drop the types altogether, and let TypeScript try to infer all the types from usage, but this will likely result in some "false positives" in terms of TS errors. This might be improved in the future, but for now it's recommended to add explicit typings for your machines.
+
+If you're using JavaScript, however, you won't have to worry about any of this, so feel free to skip ahead.
 
 ## States and events
 
@@ -13,17 +22,17 @@ Here is the schema for a simple counter machine:
 import { Machine, State } from "fini";
 
 type CounterMachine = Machine<{
-  // State which supports the `start` event
+  // `idle` state which supports the `start` event
   idle: State<{
     // Event with no payload
     start: never;
   }>;
 
-  // State which supports the `increment` and `set` events
+  // `counting` state which supports the `increment` and `setCount` events
   counting: State<{
     increment: never;
-    // Event which accepts a `number` payload
-    set: number;
+    // The `setCount` event accepts a `number` payload
+    setCount: number;
   }>;
 }>;
 ```
@@ -39,7 +48,7 @@ type CounterEvent =
       type: "increment";
     }
   | {
-      type: "set";
+      type: "setCount";
       payload: number;
     };
 ```
@@ -52,7 +61,9 @@ The benefit of doing it like this, is that you'll only have to define the event/
 
 Note that duplicate events should be defined with the same payload type everywhere, otherwise TypeScript will get confused.
 
-Also, this documentation uses camelCase for naming events. If you [PREFER_SHOUTING_NAMES](https://twitter.com/dan_abramov/status/1191487701058543617), that's also fine!
+:::tip
+In these articles, we'll be using `camelCase` for naming events. If you [PREFER_SHOUTING_NAMES](https://twitter.com/dan_abramov/status/1191487701058543617), that's also fine!
+:::
 
 ## Context
 
@@ -72,31 +83,28 @@ type CounterMachine = Machine<
     counting: State<
       {
         increment: never;
-        set: number;
+        setCount: number;
       },
+      // highlight-start
       // State-specific context
       // Only available when machine is in the `counting` state
       { count: number }
+      // highlight-end
     >;
   },
+  // highlight-start
   // Common context for all states
   { maxCount: number }
+  // highlight-end
 >;
 ```
 
-Note: If the current state has a specific context where some properties overlap with the machine context, the state's context will override the machine context.
+:::info
+If the current state has a specific context where some properties overlap with the machine context, the state's context will override the machine context.
+:::
 
-Finally, the schema is simply provided as a type argument to the `useMachine` hook, which we'll look at in a minute.
+Finally, the schema is simply provided as a type argument to the `useMachine` hook, which we'll check out in [the next article.](./event-handlers-and-transitions.md)
 
 ```tsx
-useMachine<CounterMachine>(...)
+const counterMachine = useMachine<CounterMachine>();
 ```
-
-**Why all the typing?**
-
-Two key benefits can be gained with fully typed machines:
-
-1. Great Intellisense support when implementing and using the machines
-2. Compile-time errors when attempting to access invalid properties for the current state
-
-You _can_ use Fini without explicit typing, but this will likely result in some false-positive errors here and there which you'll have to ignore.

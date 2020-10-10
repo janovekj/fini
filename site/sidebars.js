@@ -1,12 +1,12 @@
 module.exports = {
   docs: {
-    Fini: ["introduction", "other-resources"],
-    Concepts: [
-      "concepts/overview",
-      "concepts/schema-definition",
-      "concepts/event-handlers-and-transitions",
-      "concepts/the-machine-object",
-      "concepts/next-steps",
+    Fini: ["introduction", "quick-start", "other-resources"],
+    Essentials: [
+      "essentials/core-concepts",
+      "essentials/schema-definition",
+      "essentials/event-handlers-and-transitions",
+      "essentials/the-machine-object",
+      "essentials/next-steps",
     ],
     "Step-by-step-tutorial": [
       "step-by-step/creating-a-login-machine",

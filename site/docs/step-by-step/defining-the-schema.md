@@ -1,5 +1,5 @@
 ---
-title: Defining the schema
+title: Defining the Schema
 ---
 
 Fini encourages type safety by defining fully typed schemas for your machines. As such, it exposes some helpers for defining these types.
@@ -18,6 +18,7 @@ Not very exciting. Let's add a state by using the `State` helper type. We'll sta
 import { Machine, State } from "fini";
 
 type LoginMachine = Machine<{
+  // highlight-next-line
   input: State;
 }>;
 ```
@@ -31,6 +32,7 @@ import { Machine, State } from "fini";
 
 type LoginMachine = Machine<{
   input: State<{
+    // highlight-next-line
     changeEmail: string;
   }>;
 }>;
@@ -38,7 +40,9 @@ type LoginMachine = Machine<{
 
 Each event name is mapped to a corresponding _payload type_. This refers to the data that we might want to pass along with the event. In our case, we're sending an email address, which is a `string`, and `changeEmail` is typed accordingly.
 
+:::info
 If you're coming from Redux, it's pretty much the exact same as the concept of payloads in action objects (because behind the scenes, this _is_ an action object - Fini just calls them events instead).
+:::
 
 Anyways, we'll need an event to handle password input as well.
 
@@ -46,6 +50,7 @@ Anyways, we'll need an event to handle password input as well.
 type LoginMachine = Machine<{
   input: State<{
     changeEmail: string;
+    // highlight-next-line
     changePassword: string;
   }>;
 }>;
@@ -64,8 +69,10 @@ type LoginMachine = Machine<{
       changeEmail: string;
       changePassword: string;
     },
+    // highlight-start
     // Defined inside the `State`
     { email: string; password: string }
+    // highlight-end
   >;
 }>;
 ```
@@ -80,8 +87,10 @@ type LoginMachine = Machine<
       changePassword: string;
     }>;
   },
+  // highlight-start
   // Defined inside the `Machine`
   { email: string; password: string }
+  // highlight-end
 >;
 ```
 
@@ -89,4 +98,4 @@ If the same properties are defined both globally and for a state, Fini will pref
 
 In our case, we'll use email and password throughout most of the state, so we'll just define it for the entire machine (the second method).
 
-To put everything we have covered so far into context, let's actually just start working on implementing the machine.
+To put everything we have covered so far into context, let's begin implementing the machine.
