@@ -1,5 +1,5 @@
 import { renderHook, act } from "@testing-library/react-hooks";
-import { useMachine, Machine, State } from "./index";
+import { useMachine, Machine, State, createMachine } from "./index";
 
 test("string shorthand initial state", () => {
   type M = Machine<{
@@ -459,6 +459,35 @@ test("exit and entry effect", async () => {
   expect(effects).toEqual(["exit", "entry", "exit", "entry"]);
 });
 
+test("passing machine from createMachine into useMachine", () => {
+  type M = Machine<
+    {
+      a: State<{
+        p: string;
+      }>;
+      b: State;
+    },
+    { prop: string }
+  >;
+
+  const machine = createMachine<M>({
+    a: {
+      p: (_, payload) => ({ state: "b", context: { prop: payload } }),
+    },
+    b: {},
+  });
+
+  const { result } = renderHook(() =>
+    useMachine(machine, { state: "a", context: { prop: "old value" } })
+  );
+
+  act(() => {
+    result.current.p("new value");
+  });
+
+  expect(result.current.context.prop).toBe("new value");
+});
+
 /* #### Various examples #### */
 
 test("simple counter example", () => {
@@ -567,7 +596,7 @@ test("async thing", async () => {
   }>;
 
   const fetchUser = (id: string): Promise<User> =>
-    new Promise(resolve =>
+    new Promise((resolve) =>
       setTimeout(() => {
         resolve({ name: "Fini", age: 100 });
       }, 300)
@@ -579,8 +608,8 @@ test("async thing", async () => {
         initial: {
           fetch: ({ exec }, id) => {
             exec(
-              dispatch =>
-                void fetchUser(id).then(user => {
+              (dispatch) =>
+                void fetchUser(id).then((user) => {
                   dispatch.succeeded(user);
                 })
             );
@@ -602,7 +631,7 @@ test("async thing", async () => {
               user,
             },
           }),
-          failed: context => ({
+          failed: (context) => ({
             state: "error",
             context: {
               ...context,
@@ -613,8 +642,8 @@ test("async thing", async () => {
         success: {
           refetch: ({ context, exec }) => {
             exec(
-              dispatch =>
-                void fetchUser(context.params.id).then(user => {
+              (dispatch) =>
+                void fetchUser(context.params.id).then((user) => {
                   dispatch.succeeded(user);
                 })
             );
@@ -722,10 +751,10 @@ test("login machine", async () => {
            */
           login: ({ context, exec }, { email, password }) => {
             // Prepare the login function which will be executed upon state change
-            exec(dispatch => {
+            exec((dispatch) => {
               login({ email, password })
-                .then(user => dispatch.succeeded(user))
-                .catch(error => dispatch.failed(error));
+                .then((user) => dispatch.succeeded(user))
+                .catch((error) => dispatch.failed(error));
             });
 
             // Return the new state, with the new context
@@ -765,10 +794,10 @@ test("login machine", async () => {
         },
         error: {
           retry: ({ context, exec }) => {
-            exec(dispatch => {
+            exec((dispatch) => {
               login(context.params)
-                .then(user => dispatch.succeeded(user))
-                .catch(error => dispatch.failed(error));
+                .then((user) => dispatch.succeeded(user))
+                .catch((error) => dispatch.failed(error));
             });
             return "fetching";
           },
