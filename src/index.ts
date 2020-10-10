@@ -278,8 +278,7 @@ export const createMachine = <S extends StateMap>(schema: Schema<S>) => ({
         exec(() => effect(dispatcher));
 
       const transition = isFunction(eventHandler)
-        ? // @ts-ignore
-          eventHandler(
+        ? eventHandler(
             { state: state.state, context: state.context, exec: customExec },
             // @ts-ignore
             event?.payload
@@ -326,7 +325,6 @@ export const createMachine = <S extends StateMap>(schema: Schema<S>) => ({
           exec(() => {
             exitEffect?.({
               context: nextContext,
-              // @ts-ignore
               nextState,
               dispatch: dispatcher,
               state: state.state,
@@ -336,7 +334,6 @@ export const createMachine = <S extends StateMap>(schema: Schema<S>) => ({
               context: nextContext,
               previousState: state.state,
               dispatch: dispatcher,
-              // @ts-ignore
               state: nextState,
             });
           });
