@@ -18,13 +18,17 @@ const isObject = (arg: any): arg is object => typeof arg === "object";
 
 type Override<T1, T2> = Omit<T1, keyof T2> & T2;
 
-type EventMapType = Record<string, any>;
+type EventMapType = {
+  [event: string]: any;
+};
 
-type ContextType = Record<string, any>;
+type ContextType = {
+  [property: string]: any;
+};
 
 export type State<
-  EventMap extends EventMapType = EventMapType,
-  Context extends ContextType = ContextType
+  EventMap extends EventMapType = {},
+  Context extends ContextType = {}
 > = {
   context: Context;
   on: EventMap;
