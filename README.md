@@ -4,7 +4,7 @@
 
 **Small and capable state machines for React.**
 
-Using finite state machines (FSM) is a great way to safely and effectively create complex UI components. Fini aims to lower the bar of getting started with this powerful concept, all while providing the important features you should expect from an FSM library:
+Using finite state machines (FSM) is a great way to safely and effectively manage complexity in your UI components. Fini aims to lower the bar of getting started with this powerful concept, all while providing the important features you should expect from an FSM library:
 
 - ✅ easy-to-use hook for defining states, transitions and effects
 - ✅ type safety all the way
