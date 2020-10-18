@@ -41,7 +41,7 @@ type LoginMachine = Machine<{
 Each event name is mapped to a corresponding _payload type_. This refers to the data that we might want to pass along with the event. In our case, we're sending an email address, which is a `string`, and `changeEmail` is typed accordingly.
 
 :::info
-If you're coming from Redux, it's pretty much the exact same as the concept of payloads in action objects (because behind the scenes, this _is_ an action object - Fini just calls them events instead).
+If you're coming from Redux, this is the same as the concept of payloads in action objects (because behind the scenes, this _is_ an action object - Fini just calls them events instead).
 :::
 
 Anyways, we'll need an event to handle password input as well.

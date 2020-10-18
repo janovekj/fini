@@ -62,7 +62,7 @@ The benefit of doing it like this, is that you'll only have to define the event/
 Note that duplicate events should be defined with the same payload type everywhere, otherwise TypeScript will get confused.
 
 :::tip
-In these articles, we'll be using `camelCase` for naming events. If you [PREFER_SHOUTING_NAMES](https://twitter.com/dan_abramov/status/1191487701058543617), that's also fine!
+In these articles, we'll be using `camelCase` for naming events. If you [PREFER_SHOUTING_NAMES](https://twitter.com/dan_abramov/status/1191487701058543617), as is typically used with Redux and XState, that's also fine!
 :::
 
 ## Context

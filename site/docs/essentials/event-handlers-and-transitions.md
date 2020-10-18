@@ -33,27 +33,15 @@ useMachine({
 
 The first two methods are fine for transitions where no logic is involved, but for everything else, you'll probably want to use a function.
 
-Note: the event handler function should be [pure](https://en.wikipedia.org/wiki/Pure_function). If you need to perform side-effects, we'll talk about that in just a minute.
+:::note
+The event handler function should be [pure](https://en.wikipedia.org/wiki/Pure_function). If you need to perform side-effects, we'll talk about that in just a minute.
+:::
 
 ## Updating context
 
 Handling an event will often include some changes to the context. Fini has a couple of ways to achieve this as well.
 
 ```tsx
-type M = Machine<
-  {
-    state1: State<{
-      event1: never;
-      event2: never;
-      event3: never;
-      event4: never;
-    }>;
-  },
-  {
-    contextProperty: string;
-  }
->;
-
 useMachine({
   state1: {
     // Context update object
