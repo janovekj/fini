@@ -141,12 +141,17 @@ type StateEntryEffect<S extends StateMap, Current extends keyof S> = (machine: {
   dispatch: Dispatcher<S>;
 }) => void;
 
-type StateExitEffect<S extends StateMap, Current extends keyof S> = (machine: {
-  state: Current;
-  nextState: keyof S;
-  context: S[keyof S]["context"];
-  dispatch: Dispatcher<S>;
-}) => void;
+type StateExitEffect<S extends StateMap, Current extends keyof S> = (
+  machine: {
+    [State in keyof S]: {
+      nextState: State;
+      context: S[State]["context"];
+    };
+  }[keyof S] & {
+    state: keyof S;
+    dispatch: Dispatcher<S>;
+  }
+) => void;
 
 type EventHandlerMap<S extends StateMap, K extends keyof S> = {
   [E in keyof S[K]["on"]]: EventHandler<S, K, S[K]["on"][E]>;
