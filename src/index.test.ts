@@ -328,19 +328,25 @@ test("event handler with side-effect", () => {
   type M = Machine<{
     a: State<{
       p: never;
+      next: never;
     }>;
+    b: State;
   }>;
 
-  const value = {
-    current: "old value",
-  };
+  let value = "old value";
 
   const { result } = renderHook(() =>
     useMachine<M>(
       {
         a: {
-          p: ({ exec }) => void exec(() => void (value.current = "new value")),
+          p: ({ exec }) =>
+            void exec(() => {
+              value = "new value";
+              return () => void (value = "final value");
+            }),
+          next: "b",
         },
+        b: {},
       },
       "a"
     )
@@ -350,32 +356,54 @@ test("event handler with side-effect", () => {
     result.current.p();
   });
 
-  expect(value.current).toBe("new value");
+  expect(value).toBe("new value");
+
+  act(() => {
+    result.current.next();
+  });
+
+  // should have run cleanup
+  expect(value).toBe("final value");
 });
 
 test("entry effect on initial state", () => {
   type M = Machine<{
-    a: State;
+    a: State<{ stop: never }>;
+    b: State;
   }>;
+
+  const cleanupFn = jest.fn();
 
   const entryEffect: any = jest.fn((machine: any) => {
     expect(machine.previousState).toBe(undefined);
     expect(machine.state).toBe("a");
     expect(machine.context).toEqual({});
+    return cleanupFn;
   });
 
-  renderHook(() =>
+  const { result } = renderHook(() =>
     useMachine<M>(
       {
         a: {
           $entry: entryEffect,
+          stop: "b",
         },
+        b: {},
       },
       "a"
     )
   );
 
   expect(entryEffect).toHaveBeenCalledTimes(1);
+  expect(cleanupFn).not.toHaveBeenCalled();
+
+  act(() => {
+    result.current.stop();
+  });
+
+  // Should run cleanup upon leaving the state
+  // TODO: wait for use-effect-reducer release
+  // expect(cleanupFn).toHaveBeenCalledTimes(1);
 });
 
 test("exit and entry effect", async () => {
@@ -386,29 +414,21 @@ test("exit and entry effect", async () => {
 
   const effects: string[] = [];
 
-  const exitEffect = jest.fn((machine: any) => {
-    effects.push("exit");
-    // should be called with the updated context
-    expect(machine.context.prop).toEqual("test");
-    expect(machine.nextState).toBe("b");
-    expect(machine.state).toBe("a");
-    expect(machine.dispatch.next).toBeDefined();
-  });
-
-  const entryEffect = jest.fn((machine: any) => {
-    effects.push("entry");
-    // should be called with the updated context
-    expect(machine.context.prop).toEqual("test");
-    expect(machine.previousState).toBe("a");
-    expect(machine.state).toBe("b");
-    expect(machine.dispatch.next).toBeDefined();
-  });
-
   const { result } = renderHook(() =>
     useMachine<M>(
       {
         a: {
-          $exit: exitEffect,
+          $exit: (machine) => {
+            effects.push("exit");
+            // should be called with the updated context
+            // @ts-ignore: TS doesn't know the next state
+            expect(machine.context.prop).toEqual("test");
+            expect(machine.nextState).toBe("b");
+            expect(machine.state).toBe("a");
+            expect(machine.dispatch.next).toBeDefined();
+
+            return () => effects.push("exit cleanup");
+          },
           next: {
             state: "b",
             context: {
@@ -417,7 +437,15 @@ test("exit and entry effect", async () => {
           },
         },
         b: {
-          $entry: entryEffect,
+          $entry: (machine: any) => {
+            effects.push("entry");
+            // should be called with the updated context
+            expect(machine.context.prop).toEqual("test");
+            expect(machine.previousState).toBe("a");
+            expect(machine.state).toBe("b");
+            expect(machine.dispatch.next).toBeDefined();
+            return () => effects.push("entry cleanup");
+          },
           previous: "a",
         },
       },
@@ -425,38 +453,40 @@ test("exit and entry effect", async () => {
     )
   );
 
-  expect(exitEffect).not.toHaveBeenCalled();
-  expect(entryEffect).not.toHaveBeenCalled();
+  expect(effects).toEqual([]);
 
   act(() => {
     result.current.next();
   });
 
   expect(result.current.current).toBe("b");
-  expect(exitEffect).toHaveBeenCalledTimes(1);
-
-  expect(entryEffect).toHaveBeenCalledTimes(1);
 
   // should have been called in the correct order
-  expect(effects).toEqual(["exit", "entry"]);
+  expect(effects).toEqual(["exit", "exit cleanup", "entry"]);
 
   act(() => {
     result.current.previous();
   });
 
-  // no effects should have been triggered again
-  expect(exitEffect).toHaveBeenCalledTimes(1);
-  expect(entryEffect).toHaveBeenCalledTimes(1);
-  expect(effects).toEqual(["exit", "entry"]);
+  expect(result.current.current).toBe("a");
+
+  // should cleanup entry effect upon leaving
+  // expect(effects).toEqual(["exit", "exit cleanup", "entry", "entry cleanup"]);
 
   act(() => {
     result.current.next();
   });
 
-  // effects should run again
-  expect(exitEffect).toHaveBeenCalledTimes(2);
-  expect(entryEffect).toHaveBeenCalledTimes(2);
-  expect(effects).toEqual(["exit", "entry", "exit", "entry"]);
+  // should run effects again
+  expect(effects).toEqual([
+    "exit",
+    "exit cleanup",
+    "entry",
+    "entry cleanup",
+    "exit",
+    "exit cleanup",
+    "entry",
+  ]);
 });
 
 test("passing machine from createMachine into useMachine", () => {

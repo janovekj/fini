@@ -1,4 +1,8 @@
-import { useEffectReducer, EffectReducer } from "use-effect-reducer";
+import {
+  useEffectReducer,
+  EffectReducer,
+  EffectEntity,
+} from "use-effect-reducer";
 
 const dev = {
   warn: (...args: Parameters<typeof console.warn>) =>
@@ -75,12 +79,17 @@ type UpdateObject<S extends StateMap> = {
     : { context: S[K]["context"] });
 }[keyof S];
 
-type ReducerState<S extends StateMap> = {
+type ReducerResultState<S extends StateMap> = {
   [K in keyof S]: {
-    state: K;
+    current: K;
     context: S[K]["context"] extends undefined ? {} : S[K]["context"];
   };
 }[keyof S];
+
+type ReducerResult<S extends StateMap> = {
+  state: ReducerResultState<S>;
+  effects: EffectEntity<ReducerResult<S>, EventObject<S>>[];
+};
 
 /** The resulting state after a transition */
 type Update<S extends StateMap, Current extends keyof S> =
@@ -135,7 +144,7 @@ type StateEntryEffect<S extends StateMap, Current extends keyof S> = (machine: {
 type StateExitEffect<S extends StateMap, Current extends keyof S> = (machine: {
   state: Current;
   nextState: keyof S;
-  context: S[Current]["context"];
+  context: S[keyof S]["context"];
   dispatch: Dispatcher<S>;
 }) => void;
 
@@ -195,11 +204,11 @@ type InitialState<S extends StateMap> =
 const parseInitialState = <S extends StateMap>(
   schema: Schema<S>,
   initialState: InitialState<S>
-) => {
+): ReducerResultState<S> => {
   if (typeof initialState === "string") {
     if (initialState in schema) {
       return {
-        state: initialState,
+        current: initialState,
         context: {},
       };
     } else {
@@ -211,7 +220,10 @@ const parseInitialState = <S extends StateMap>(
     }
   } else if (isObject(initialState)) {
     if (initialState.state in schema) {
-      return initialState;
+      return {
+        current: initialState.state,
+        context: initialState.context ?? {},
+      };
     } else {
       dev.error(
         `State '${
@@ -227,7 +239,7 @@ type CreateMachineResult<S extends StateMap> = {
   schema: Schema<S>;
   createReducer: (
     dispatcher: Dispatcher<S>
-  ) => EffectReducer<ReducerState<S>, EventObject<S>>;
+  ) => EffectReducer<ReducerResult<S>, EventObject<S>>;
 };
 
 const isCreateMachineResult = <S extends StateMap>(
@@ -239,28 +251,26 @@ type MachineDefinition<S extends StateMap> = Schema<S> | CreateMachineResult<S>;
 export const createMachine = <S extends StateMap>(schema: Schema<S>) => ({
   schema,
   createReducer: (dispatcher: Dispatcher<S>) => {
-    const reducer: EffectReducer<ReducerState<S>, EventObject<S>> = (
-      state,
+    const reducer: EffectReducer<ReducerResult<S>, EventObject<S>> = (
+      { state, effects: oldEffects },
       event,
       exec
     ) => {
-      if (!(state.state in schema)) {
-        dev.error(`State '${state.state}' does not exist in schema`);
-        return state;
+      if (!(state.current in schema)) {
+        dev.error(`State '${state.current}' does not exist in schema`);
+        return { state, effects: [] };
       }
 
-      const { $exit: exitEffect, $entry, ...eventHandlerMap } = schema[
-        state.state
-      ];
+      const { $exit: exitEffect, ...eventHandlerMap } = schema[state.current];
 
       if (!eventHandlerMap) {
         if (exitEffect) {
           dev.error(
-            `Exit effect was found on state '${state.state}' where no event handlers are defined. This is nonsensical behaviour, as the state can never be exited.`
+            `Exit effect was found on state '${state.current}' where no event handlers are defined. This is nonsensical behaviour, as the state can never be exited.`
           );
         }
 
-        return state;
+        return { state, effects: [] };
       }
 
       // @ts-ignore
@@ -268,18 +278,27 @@ export const createMachine = <S extends StateMap>(schema: Schema<S>) => ({
 
       if (!eventHandler) {
         dev.warn(
-          `Event handler for '${event.type}' does not exist in state '${state.state}'`
+          `Event handler for '${event.type}' does not exist in state '${state.current}'`
         );
 
-        return state;
+        return { state, effects: [] };
       }
 
-      const customExec = (effect: EffectFunction<S>) =>
-        exec(() => effect(dispatcher));
+      const newEffects: EffectEntity<ReducerResult<S>, EventObject<S>>[] = [];
+
+      const execAndStoreEntity = (effect: EffectFunction<S>) => {
+        const effectEntity = exec(() => effect(dispatcher));
+        newEffects.push(effectEntity);
+        return effectEntity;
+      };
 
       const transition = isFunction(eventHandler)
         ? eventHandler(
-            { state: state.state, context: state.context, exec: customExec },
+            {
+              state: state.current,
+              context: state.context,
+              exec: execAndStoreEntity,
+            },
             // @ts-ignore
             event?.payload
           )
@@ -290,11 +309,11 @@ export const createMachine = <S extends StateMap>(schema: Schema<S>) => ({
       const getNextState = () => {
         if (isObject(update)) {
           //@ts-ignore
-          return "state" in update ? update.state : state.state;
+          return "state" in update ? update.state : state.current;
         } else if (typeof update === "string" && update in schema) {
           return update;
         } else if (update === undefined) {
-          return state.state;
+          return state.current;
         } else {
           return undefined;
         }
@@ -319,37 +338,59 @@ export const createMachine = <S extends StateMap>(schema: Schema<S>) => ({
 
       const nextContext = getNextContext();
 
-      if (nextState && nextState !== state.state) {
-        const { $entry: nextStateEntryEffect } = schema[nextState];
-        if (exitEffect || nextStateEntryEffect) {
-          exec(() => {
-            exitEffect?.({
+      let allEffects: EffectEntity<ReducerResult<S>, EventObject<S>>[] = [];
+      if (nextState && nextState !== state.current) {
+        exec(() => {
+          oldEffects.forEach((effect) => {
+            effect.stop();
+          });
+        });
+
+        if (exitEffect) {
+          const entity = exec(() =>
+            exitEffect({
               context: nextContext,
               nextState,
               dispatch: dispatcher,
-              state: state.state,
-            });
+              state: state.current,
+            })
+          );
+          // Can't call .stop directly, as that will just cancel the effect
+          // before it gets a chance to run. have to schedule the stopping
+          // as a separate effect
+          exec(() => entity.stop());
+        }
 
-            nextStateEntryEffect?.({
+        const { $entry: nextStateEntryEffect } = schema[nextState];
+
+        if (nextStateEntryEffect) {
+          execAndStoreEntity(() => {
+            return nextStateEntryEffect({
               context: nextContext,
-              previousState: state.state,
+              previousState: state.current,
               dispatch: dispatcher,
               state: nextState,
             });
           });
         }
+        allEffects = newEffects;
+      } else {
+        allEffects = [...oldEffects, ...newEffects];
       }
 
       if (!nextState && !nextContext) {
         dev.error(`unknown type of EventNode`, update);
       } else {
         return {
-          state: nextState,
-          context: nextContext,
+          state: {
+            current: nextState,
+            context: nextContext,
+          },
+          effects: allEffects,
         };
       }
 
-      return state;
+      return { state, effects: allEffects };
     };
 
     return reducer;
@@ -376,39 +417,42 @@ export const useMachine = <S extends StateMap>(
   ) as Dispatcher<S>;
 
   const reducer: EffectReducer<
-    ReducerState<S>,
+    ReducerResult<S>,
     EventObject<S>
   > = isCreateMachineResult(machine)
     ? machine.createReducer(dispatcher)
     : createMachine(schema).createReducer(dispatcher);
 
   const [reducerState, dispatch] = useEffectReducer(reducer, (exec) => {
-    const initial: ReducerState<S> = (parseInitialState(
-      schema,
-      initialState
-    ) as unknown) as ReducerState<S>;
+    const initial = parseInitialState(schema, initialState);
 
-    const initialStateNode = schema[initial.state];
+    const initialStateNode = schema[initial.current];
+    const effects: EffectEntity<ReducerResult<S>, EventObject<S>>[] = [];
     if (initialStateNode.$entry) {
-      exec(
+      const effectEntity = exec(
         () =>
           initialStateNode.$entry &&
           initialStateNode.$entry({
-            ...initial,
+            state: initial.current,
+            context: initial.context,
             dispatch: dispatcher,
           })
       );
+      // TODO: wait for use-effect-reducer release
+      // effects.push(effectEntity);
     }
-    return initial;
+    return { state: initial, effects };
   });
 
   const state: MachineResult<S> = {
-    current: reducerState.state,
+    current: reducerState.state.current,
     ...Object.assign(
       {},
-      ...Object.keys(schema).map((s) => ({ [s]: s === reducerState.state }))
+      ...Object.keys(schema).map((s) => ({
+        [s]: s === reducerState.state.current,
+      }))
     ),
-    context: reducerState.context ?? {},
+    context: reducerState.state.context ?? {},
     // @ts-ignore
     ...dispatcher,
   };
