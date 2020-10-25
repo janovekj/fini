@@ -443,8 +443,8 @@ export const useMachine = <S extends StateMap>(
             dispatch: dispatcher,
           })
       );
-      // TODO: wait for use-effect-reducer release
-      // effects.push(effectEntity);
+
+      effects.push(effectEntity);
     }
     return { state: initial, effects };
   });

@@ -402,8 +402,7 @@ test("entry effect on initial state", () => {
   });
 
   // Should run cleanup upon leaving the state
-  // TODO: wait for use-effect-reducer release
-  // expect(cleanupFn).toHaveBeenCalledTimes(1);
+  expect(cleanupFn).toHaveBeenCalledTimes(1);
 });
 
 test("exit and entry effect", async () => {
@@ -471,7 +470,7 @@ test("exit and entry effect", async () => {
   expect(result.current.current).toBe("a");
 
   // should cleanup entry effect upon leaving
-  // expect(effects).toEqual(["exit", "exit cleanup", "entry", "entry cleanup"]);
+  expect(effects).toEqual(["exit", "exit cleanup", "entry", "entry cleanup"]);
 
   act(() => {
     result.current.next();
