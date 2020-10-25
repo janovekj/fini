@@ -212,6 +212,7 @@ const parseInitialState = <S extends StateMap>(
 ): ReducerResultState<S> => {
   if (typeof initialState === "string") {
     if (initialState in schema) {
+      // @ts-ignore
       return {
         current: initialState,
         context: {},
@@ -227,6 +228,7 @@ const parseInitialState = <S extends StateMap>(
     if (initialState.state in schema) {
       return {
         current: initialState.state,
+        // @ts-ignore
         context: initialState.context ?? {},
       };
     } else {
@@ -237,6 +239,7 @@ const parseInitialState = <S extends StateMap>(
       );
     }
   }
+  // @ts-ignore
   return;
 };
 
