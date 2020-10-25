@@ -50,6 +50,6 @@
     "typescript": "^3.7.5"
   },
   "dependencies": {
-    "use-effect-reducer": "^0.6.1"
+    "use-effect-reducer": "^0.7.0"
   }
 }
