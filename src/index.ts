@@ -87,7 +87,7 @@ type UpdateObject<S extends StateMapType> = {
 type ReducerResultState<S extends StateMapType> = {
   [K in keyof S]: {
     current: K;
-    context: S[K]["context"] extends undefined ? {} : S[K]["context"];
+    context: {} extends S[K]["context"] ? {} : S[K]["context"];
   };
 }[keyof S];
 
