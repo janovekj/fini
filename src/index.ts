@@ -417,10 +417,20 @@ export const createMachine = <S extends StateMapType>(schema: Schema<S>) => ({
   },
 });
 
-export const useMachine = <S extends StateMapType>(
+export function useMachine<S extends StateMapType>(
+  machine: Schema<S>,
+  initialState: InitialState<S>
+): MachineResult<S>;
+
+export function useMachine<S extends StateMapType>(
+  machine: CreateMachineResult<S>,
+  initialState: InitialState<S>
+): MachineResult<S>;
+
+export function useMachine<S extends StateMapType>(
   machine: MachineDefinition<S>,
   initialState: InitialState<S>
-) => {
+): MachineResult<S> {
   const schema = isCreateMachineResult(machine)
     ? (machine.schema as Schema<S>)
     : machine;
@@ -478,4 +488,4 @@ export const useMachine = <S extends StateMapType>(
   };
 
   return state;
-};
+}
