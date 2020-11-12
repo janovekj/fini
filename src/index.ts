@@ -133,10 +133,10 @@ type CreateTranstionFn<
   P extends any
 > = [P] extends [never]
   ? (
-      machine: CreateTransitionFnMachineObject<S, Current>
+      machine: Expand<CreateTransitionFnMachineObject<S, Current>>
     ) => Transition<S, Current>
   : (
-      machine: CreateTransitionFnMachineObject<S, Current>,
+      machine: Expand<CreateTransitionFnMachineObject<S, Current>>,
       payload: P
     ) => Transition<S, Current>;
 
@@ -204,15 +204,17 @@ type Dispatcher<S extends StateMapType> = UnionToIntersection<
   }[keyof S]
 >;
 
-type MachineResult<S extends StateMapType> = {
-  [K in keyof S]: {
-    current: K;
-    context: S[K]["context"];
-  } & {
-    [KK in keyof S]: KK extends K ? true : false;
-  } &
-    Dispatcher<S>;
-}[keyof S];
+type MachineResult<S extends StateMapType> = Expand<
+  {
+    [K in keyof S]: {
+      current: K;
+      context: S[K]["context"];
+    } & {
+      [KK in keyof S]: KK extends K ? true : false;
+    } &
+      Dispatcher<S>;
+  }[keyof S]
+>;
 
 type OptionalContextStates<S extends StateMapType> = {
   [K in keyof S]: {} extends S[K]["context"] ? K : never;
