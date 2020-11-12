@@ -11,6 +11,8 @@ const dev = {
     __DEV__ && console.error(args),
 };
 
+type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
+
 type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
 type XOR<T, U> = T | U extends object
   ? (Without<T, U> & U) | (Without<U, T> & T)
@@ -42,21 +44,25 @@ type StateMapType = {
   [state: string]: State;
 };
 
-type ApplyBaseContext<BaseContext, StateContext> = Override<
-  BaseContext,
-  StateContext
->;
-
-type MachineState<BaseContext, S extends State> = {
-  on: S["on"];
-  context: ApplyBaseContext<BaseContext, S["context"]>;
+type StateDefinition = {
+  context?: ContextType;
+  on?: EventMapType;
 };
 
+type StateMapDefinition = {
+  [state: string]: StateDefinition;
+};
+
+type TypeOrEmpty<T> = T extends {} ? T : {};
+
 export type Machine<
-  S extends StateMapType = {},
+  S extends StateMapDefinition,
   BaseContext extends ContextType = {}
 > = {
-  [K in keyof S]: MachineState<BaseContext, S[K]>;
+  [state in keyof S]: {
+    context: Expand<Override<BaseContext, TypeOrEmpty<S[state]["context"]>>>;
+    on: TypeOrEmpty<S[state]["on"]>;
+  };
 };
 
 type CompatibleContextStates<
