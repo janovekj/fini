@@ -47,7 +47,7 @@ test("string shorthand state transition", () => {
     states: {
       a: {
         on: {
-          p: never;
+          p: void;
         };
       };
       b: {};
@@ -78,7 +78,7 @@ test("object state transition", () => {
     states: {
       a: {
         on: {
-          p: never;
+          p: void;
         };
       };
       b: {};
@@ -109,7 +109,7 @@ test("shorthand context update", () => {
     states: {
       a: {
         on: {
-          p: never;
+          p: void;
         };
       };
     };
@@ -142,7 +142,7 @@ test("context and state update object", () => {
     states: {
       a: {
         on: {
-          p: never;
+          p: void;
         };
       };
       b: {};
@@ -175,7 +175,7 @@ test("string shorthand state transition by function", () => {
     states: {
       a: {
         on: {
-          p: never;
+          p: void;
         };
       };
       b: {};
@@ -206,7 +206,7 @@ test("object state transition by function", () => {
     states: {
       a: {
         on: {
-          p: never;
+          p: void;
         };
       };
       b: {};
@@ -240,7 +240,7 @@ test("shorthand context update by function", () => {
     states: {
       a: {
         on: {
-          p: never;
+          p: void;
         };
       };
     };
@@ -273,7 +273,7 @@ test("context and state update object by function", () => {
     states: {
       a: {
         on: {
-          p: never;
+          p: void;
         };
       };
       b: {};
@@ -306,7 +306,7 @@ test("void event handler", () => {
     states: {
       state1: {
         on: {
-          event1: never;
+          event1: void;
         };
       };
     };
@@ -364,8 +364,8 @@ test("event handler with side-effect", () => {
     states: {
       a: {
         on: {
-          p: never;
-          next: never;
+          p: void;
+          next: void;
         };
       };
       b: {};
@@ -408,10 +408,11 @@ test("event handler with side-effect", () => {
 test("entry effect on initial state", () => {
   type M = {
     states: {
-      a: {
-        on: { stop: never };
-      };
+      a: {};
       b: {};
+    };
+    events: {
+      stop: void;
     };
   };
 
@@ -452,10 +453,10 @@ test("exit and entry effect", async () => {
   type M = {
     states: {
       a: {
-        on: { next: never };
+        on: { next: void };
       };
       b: {
-        on: { previous: never };
+        on: { previous: void };
         context: { prop: string };
       };
     };
@@ -486,7 +487,7 @@ test("exit and entry effect", async () => {
           },
         },
         b: {
-          $entry: (machine: any) => {
+          $entry: (machine) => {
             effects.push("entry");
             // should be called with the updated context
             expect(machine.context.prop).toEqual("test");
@@ -576,13 +577,13 @@ test("simple counter example", () => {
     states: {
       counting: {
         on: {
-          increment: never;
-          decrement: never;
+          increment: void;
+          decrement: void;
         };
       };
       maxedOut: {
         on: {
-          reset: never;
+          reset: void;
         };
       };
     };
@@ -673,7 +674,7 @@ test("async thing", async () => {
       };
       success: {
         on: {
-          refetch: never;
+          refetch: void;
         };
         context: {
           params: { id: string };
@@ -801,7 +802,7 @@ test("login machine", async () => {
       };
       loggedIn: {
         on: {
-          logout: never;
+          logout: void;
         };
         context: {
           params: LoginParams;
@@ -810,7 +811,7 @@ test("login machine", async () => {
       };
       error: {
         on: {
-          retry: never;
+          retry: void;
         };
         context: { error: string; params: LoginParams };
       };
@@ -940,17 +941,17 @@ test("counter example with enter and exit effects", () => {
   type CounterMachine = {
     states: {
       idle: {
-        on: { start: never };
+        on: { start: void };
       };
       counting: {
         on: {
-          increment: never;
-          pause: never;
-          stop: never;
+          increment: void;
+          pause: void;
+          stop: void;
         };
       };
       paused: {
-        on: { resume: never };
+        on: { resume: void };
       };
       stopped: {};
     };
