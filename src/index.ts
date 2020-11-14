@@ -219,18 +219,18 @@ type EventObject<S extends StateMapType> = {
   }[keyof S[K]["on"]];
 }[keyof S];
 
-type MachineResult<S extends Machine> = Expand<
+type MachineResult<M extends Machine> = Expand<
   {
-    [K in keyof States<MachineTypeWithDefaults<S>>]: {
+    [K in keyof States<MachineTypeWithDefaults<M>>]: {
       current: K;
-      context: Expand<States<MachineTypeWithDefaults<S>>[K]["context"]>;
+      context: Expand<States<MachineTypeWithDefaults<M>>[K]["context"]>;
     } & {
-      [KK in keyof States<MachineTypeWithDefaults<S>>]: KK extends K
+      [KK in keyof States<MachineTypeWithDefaults<M>>]: KK extends K
         ? true
         : false;
     } &
-      Dispatcher<States<MachineTypeWithDefaults<S>>>;
-  }[keyof States<MachineTypeWithDefaults<S>>]
+      Dispatcher<States<MachineTypeWithDefaults<M>>>;
+  }[keyof States<MachineTypeWithDefaults<M>>]
 >;
 
 type OptionalContextStates<S extends StateMapType> = {
@@ -244,33 +244,33 @@ type States<M extends MachineType> = {
   };
 };
 
-type ReducerResultState<S extends MachineType> = {
-  [K in keyof States<S>]: {
+type ReducerResultState<M extends MachineType> = {
+  [K in keyof States<M>]: {
     current: K;
-    context: {} extends States<S>[K]["context"] ? {} : States<S>[K]["context"];
+    context: {} extends States<M>[K]["context"] ? {} : States<M>[K]["context"];
   };
-}[keyof States<S>];
+}[keyof States<M>];
 
-type ReducerResult<S extends MachineType> = {
-  state: ReducerResultState<S>;
-  effects: EffectEntity<ReducerResult<S>, EventObject<States<S>>>[];
+type ReducerResult<M extends MachineType> = {
+  state: ReducerResultState<M>;
+  effects: EffectEntity<ReducerResult<M>, EventObject<States<M>>>[];
 };
 
-type Schema<S extends Machine> = {
-  [K in keyof States<MachineTypeWithDefaults<S>>]: EventHandlerMap<
-    States<MachineTypeWithDefaults<S>>,
+type Schema<M extends Machine> = {
+  [K in keyof States<MachineTypeWithDefaults<M>>]: EventHandlerMap<
+    States<MachineTypeWithDefaults<M>>,
     K
   >;
 };
 
-type InitialState<S extends Machine> =
-  | OptionalContextStates<States<MachineTypeWithDefaults<S>>>
-  | UpdateObject<States<MachineTypeWithDefaults<S>>>;
+type InitialState<M extends Machine> =
+  | OptionalContextStates<States<MachineTypeWithDefaults<M>>>
+  | UpdateObject<States<MachineTypeWithDefaults<M>>>;
 
-const parseInitialState = <S extends Machine>(
-  schema: Schema<S>,
-  initialState: InitialState<S>
-): ReducerResultState<MachineTypeWithDefaults<S>> => {
+const parseInitialState = <M extends Machine>(
+  schema: Schema<M>,
+  initialState: InitialState<M>
+): ReducerResultState<MachineTypeWithDefaults<M>> => {
   if (typeof initialState === "string") {
     if (initialState in schema) {
       // @ts-ignore
@@ -304,28 +304,28 @@ const parseInitialState = <S extends Machine>(
   return;
 };
 
-type CreateMachineResult<S extends Machine> = {
-  schema: Schema<S>;
+type CreateMachineResult<M extends Machine> = {
+  schema: Schema<M>;
   createReducer: (
-    dispatcher: Dispatcher<States<MachineTypeWithDefaults<S>>>
+    dispatcher: Dispatcher<States<MachineTypeWithDefaults<M>>>
   ) => EffectReducer<
-    ReducerResult<MachineTypeWithDefaults<S>>,
-    EventObject<States<MachineTypeWithDefaults<S>>>
+    ReducerResult<MachineTypeWithDefaults<M>>,
+    EventObject<States<MachineTypeWithDefaults<M>>>
   >;
 };
 
-const isCreateMachineResult = <S extends Machine>(
-  arg: MachineDefinition<S>
-): arg is CreateMachineResult<S> => "schema" in arg && "createReducer" in arg;
+const isCreateMachineResult = <M extends Machine>(
+  arg: MachineDefinition<M>
+): arg is CreateMachineResult<M> => "schema" in arg && "createReducer" in arg;
 
-type MachineDefinition<S extends Machine> = Schema<S> | CreateMachineResult<S>;
+type MachineDefinition<M extends Machine> = Schema<M> | CreateMachineResult<M>;
 
-export const createMachine = <S extends Machine>(schema: Schema<S>) => ({
+export const createMachine = <M extends Machine>(schema: Schema<M>) => ({
   schema,
   createReducer: (
-    dispatcher: Dispatcher<States<MachineTypeWithDefaults<S>>>
+    dispatcher: Dispatcher<States<MachineTypeWithDefaults<M>>>
   ) => {
-    type MachineWithDefaults = MachineTypeWithDefaults<S>;
+    type MachineWithDefaults = MachineTypeWithDefaults<M>;
     type StateMap = States<MachineWithDefaults>;
     const reducer: EffectReducer<
       ReducerResult<MachineWithDefaults>,
@@ -478,34 +478,34 @@ export const createMachine = <S extends Machine>(schema: Schema<S>) => ({
   },
 });
 
-export function useMachine<S extends Machine>(
-  machine: Schema<S>,
-  initialState: InitialState<S>
-): MachineResult<S>;
+export function useMachine<M extends Machine>(
+  schema: Schema<M>,
+  initialState: InitialState<M>
+): MachineResult<M>;
 
-export function useMachine<S extends Machine>(
-  machine: CreateMachineResult<S>,
-  initialState: InitialState<S>
-): MachineResult<S>;
+export function useMachine<M extends Machine>(
+  createMachineResult: CreateMachineResult<M>,
+  initialState: InitialState<M>
+): MachineResult<M>;
 
-export function useMachine<S extends Machine>(
-  machine: MachineDefinition<S>,
-  initialState: InitialState<S>
-): MachineResult<S> {
-  type MachineWithDefaults = MachineTypeWithDefaults<S>;
+export function useMachine<M extends Machine>(
+  machineDefinition: MachineDefinition<M>,
+  initialState: InitialState<M>
+): MachineResult<M> {
+  type MachineWithDefaults = MachineTypeWithDefaults<M>;
   type StateMap = States<MachineWithDefaults>;
 
-  const schema = isCreateMachineResult(machine)
-    ? (machine.schema as Schema<S>)
-    : machine;
+  const schema = isCreateMachineResult(machineDefinition)
+    ? (machineDefinition.schema as Schema<M>)
+    : machineDefinition;
 
   const dispatcher = createDispatcher(schema, (action) => dispatch(action));
 
   const reducer: EffectReducer<
     ReducerResult<MachineWithDefaults>,
     EventObject<StateMap>
-  > = isCreateMachineResult(machine)
-    ? machine.createReducer(dispatcher)
+  > = isCreateMachineResult(machineDefinition)
+    ? machineDefinition.createReducer(dispatcher)
     : createMachine(schema).createReducer(dispatcher);
 
   const [reducerState, dispatch] = useEffectReducer(reducer, (exec) => {
@@ -532,7 +532,7 @@ export function useMachine<S extends Machine>(
     return { state: initial, effects };
   });
 
-  const state: MachineResult<S> = {
+  const state: MachineResult<M> = {
     current: reducerState.state.current,
     ...Object.assign(
       {},
