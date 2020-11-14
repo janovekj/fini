@@ -18,11 +18,19 @@ type XOR<T, U> = T | U extends object
   ? (Without<T, U> & U) | (Without<U, T> & T)
   : T | U;
 
+type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
+  k: infer I
+) => void
+  ? I
+  : never;
+
+type Override<T1, T2> = Omit<T1, keyof T2> & T2;
+
+type TypeOrEmpty<T> = T extends {} ? T : {};
+
 const isFunction = (arg: any): arg is Function => typeof arg === "function";
 
 const isObject = (arg: any): arg is object => typeof arg === "object";
-
-type Override<T1, T2> = Omit<T1, keyof T2> & T2;
 
 type EventMapType = {
   [event: string]: any;
@@ -71,8 +79,6 @@ type StateMapDefinition = {
   [state: string]: Partial<State>;
 };
 
-type TypeOrEmpty<T> = T extends {} ? T : {};
-
 type CompatibleContextStates<
   S extends StateMapType,
   Current extends keyof S
@@ -102,6 +108,34 @@ type UpdateObject<S extends StateMapType> = {
 type Update<S extends StateMapType, Current extends keyof S> =
   | CompatibleContextStates<S, Current>
   | XOR<ContextUpdate<S, Current>, UpdateObject<S>>;
+
+type Dispatcher<S extends StateMapType> = UnionToIntersection<
+  {
+    [K in keyof S]: {
+      [E in keyof S[K]["on"]]: S[K]["on"][E] extends null
+        ? () => void
+        : (payload: S[K]["on"][E]) => void;
+    };
+  }[keyof S]
+>;
+
+const createDispatcher = <M extends Machine>(
+  schema: Schema<M>,
+  dispatchFn: (action: any) => void
+): Dispatcher<States<MachineTypeWithDefaults<M>>> => {
+  const events = Array.from(
+    new Set(Object.values(schema).flatMap(Object.keys))
+  );
+  const dispatcher = Object.assign(
+    {},
+    ...events.map((event) => ({
+      //@ts-ignore
+      [event]: (payload: unknown) => dispatchFn({ type: event, payload }),
+    }))
+  ) as Dispatcher<States<MachineTypeWithDefaults<M>>>;
+
+  return dispatcher;
+};
 
 type CleanupFunction = () => void;
 type EffectFunction<S extends StateMapType> = (
@@ -185,32 +219,18 @@ type EventObject<S extends StateMapType> = {
   }[keyof S[K]["on"]];
 }[keyof S];
 
-type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
-  k: infer I
-) => void
-  ? I
-  : never;
-
-type Dispatcher<S extends StateMapType> = UnionToIntersection<
+type MachineResult<S extends Machine> = Expand<
   {
-    [K in keyof S]: {
-      [E in keyof S[K]["on"]]: S[K]["on"][E] extends null
-        ? () => void
-        : (payload: S[K]["on"][E]) => void;
-    };
-  }[keyof S]
->;
-
-type MachineResult<S extends StateMapType> = Expand<
-  {
-    [K in keyof S]: {
+    [K in keyof States<MachineTypeWithDefaults<S>>]: {
       current: K;
-      context: S[K]["context"];
+      context: Expand<States<MachineTypeWithDefaults<S>>[K]["context"]>;
     } & {
-      [KK in keyof S]: KK extends K ? true : false;
+      [KK in keyof States<MachineTypeWithDefaults<S>>]: KK extends K
+        ? true
+        : false;
     } &
-      Dispatcher<S>;
-  }[keyof S]
+      Dispatcher<States<MachineTypeWithDefaults<S>>>;
+  }[keyof States<MachineTypeWithDefaults<S>>]
 >;
 
 type OptionalContextStates<S extends StateMapType> = {
@@ -236,18 +256,21 @@ type ReducerResult<S extends MachineType> = {
   effects: EffectEntity<ReducerResult<S>, EventObject<States<S>>>[];
 };
 
-type Schema<S extends MachineType> = {
-  [K in keyof States<S>]: EventHandlerMap<States<S>, K>;
+type Schema<S extends Machine> = {
+  [K in keyof States<MachineTypeWithDefaults<S>>]: EventHandlerMap<
+    States<MachineTypeWithDefaults<S>>,
+    K
+  >;
 };
 
-type InitialState<S extends MachineType> =
-  | OptionalContextStates<States<S>>
-  | UpdateObject<States<S>>;
+type InitialState<S extends Machine> =
+  | OptionalContextStates<States<MachineTypeWithDefaults<S>>>
+  | UpdateObject<States<MachineTypeWithDefaults<S>>>;
 
-const parseInitialState = <S extends MachineType>(
+const parseInitialState = <S extends Machine>(
   schema: Schema<S>,
   initialState: InitialState<S>
-): ReducerResultState<S> => {
+): ReducerResultState<MachineTypeWithDefaults<S>> => {
   if (typeof initialState === "string") {
     if (initialState in schema) {
       // @ts-ignore
@@ -281,24 +304,23 @@ const parseInitialState = <S extends MachineType>(
   return;
 };
 
-type CreateMachineResult<S extends MachineType> = {
+type CreateMachineResult<S extends Machine> = {
   schema: Schema<S>;
   createReducer: (
-    dispatcher: Dispatcher<States<S>>
-  ) => EffectReducer<ReducerResult<S>, EventObject<States<S>>>;
+    dispatcher: Dispatcher<States<MachineTypeWithDefaults<S>>>
+  ) => EffectReducer<
+    ReducerResult<MachineTypeWithDefaults<S>>,
+    EventObject<States<MachineTypeWithDefaults<S>>>
+  >;
 };
 
-const isCreateMachineResult = <S extends MachineType>(
+const isCreateMachineResult = <S extends Machine>(
   arg: MachineDefinition<S>
 ): arg is CreateMachineResult<S> => "schema" in arg && "createReducer" in arg;
 
-type MachineDefinition<S extends MachineType> =
-  | Schema<S>
-  | CreateMachineResult<S>;
+type MachineDefinition<S extends Machine> = Schema<S> | CreateMachineResult<S>;
 
-export const createMachine = <S extends Machine>(
-  schema: Schema<MachineTypeWithDefaults<S>>
-) => ({
+export const createMachine = <S extends Machine>(schema: Schema<S>) => ({
   schema,
   createReducer: (
     dispatcher: Dispatcher<States<MachineTypeWithDefaults<S>>>
@@ -457,36 +479,27 @@ export const createMachine = <S extends Machine>(
 });
 
 export function useMachine<S extends Machine>(
-  machine: Schema<MachineTypeWithDefaults<S>>,
-  initialState: InitialState<MachineTypeWithDefaults<S>>
-): MachineResult<States<MachineTypeWithDefaults<S>>>;
+  machine: Schema<S>,
+  initialState: InitialState<S>
+): MachineResult<S>;
 
 export function useMachine<S extends Machine>(
-  machine: CreateMachineResult<MachineTypeWithDefaults<S>>,
-  initialState: InitialState<MachineTypeWithDefaults<S>>
-): MachineResult<States<MachineTypeWithDefaults<S>>>;
+  machine: CreateMachineResult<S>,
+  initialState: InitialState<S>
+): MachineResult<S>;
 
 export function useMachine<S extends Machine>(
-  machine: MachineDefinition<MachineTypeWithDefaults<S>>,
-  initialState: InitialState<MachineTypeWithDefaults<S>>
-): MachineResult<States<MachineTypeWithDefaults<S>>> {
+  machine: MachineDefinition<S>,
+  initialState: InitialState<S>
+): MachineResult<S> {
   type MachineWithDefaults = MachineTypeWithDefaults<S>;
   type StateMap = States<MachineWithDefaults>;
 
   const schema = isCreateMachineResult(machine)
-    ? (machine.schema as Schema<MachineWithDefaults>)
+    ? (machine.schema as Schema<S>)
     : machine;
 
-  const events = Array.from(
-    new Set(Object.values(schema).flatMap(Object.keys))
-  );
-  const dispatcher = Object.assign(
-    {},
-    ...events.map((event) => ({
-      //@ts-ignore
-      [event]: (payload: unknown) => dispatch({ type: event, payload }),
-    }))
-  ) as Dispatcher<StateMap>;
+  const dispatcher = createDispatcher(schema, (action) => dispatch(action));
 
   const reducer: EffectReducer<
     ReducerResult<MachineWithDefaults>,
@@ -519,7 +532,7 @@ export function useMachine<S extends Machine>(
     return { state: initial, effects };
   });
 
-  const state: MachineResult<StateMap> = {
+  const state: MachineResult<S> = {
     current: reducerState.state.current,
     ...Object.assign(
       {},
