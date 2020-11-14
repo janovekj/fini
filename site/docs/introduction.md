@@ -19,6 +19,6 @@ If this all sounds good to you, go right ahead and jump into the [quick-ish star
 
 If you want to get a slightly deeper understanding of how Fini works, give the [Essentials section](essentials/core-concepts) a quick read.
 
-Love reading? Then the [step-by-step tutorial](step-by-step/creating-a-login-machine) was made for you!
+<!-- Love reading? Then the [step-by-step tutorial](step-by-step/creating-a-login-machine) was made for you! -->
 
 ❓ Unfamiliar with state machines? Watch this [great talk by David Khourshid](https://www.youtube.com/watch?v=RqTxtOXcv8Y)!

@@ -18,23 +18,26 @@ If you're using JavaScript, however, you won't have to worry about any of this, 
 Here is the schema for a simple counter machine:
 
 ```tsx
-// Helper types for schema definitons
-import { Machine, State } from "fini";
+type CounterMachine = {
+  states: {
+    // `idle` state which supports the `start` event
+    idle: {
+      on: {
+        // Event with no payload
+        start: void;
+      };
+    };
 
-type CounterMachine = Machine<{
-  // `idle` state which supports the `start` event
-  idle: State<{
-    // Event with no payload
-    start: never;
-  }>;
-
-  // `counting` state which supports the `increment` and `setCount` events
-  counting: State<{
-    increment: never;
-    // The `setCount` event accepts a `number` payload
-    setCount: number;
-  }>;
-}>;
+    // `counting` state which supports the `increment` and `setCount` events
+    counting: {
+      on: {
+        increment: never;
+        // The `setCount` event accepts a `number` payload
+        setCount: number;
+      };
+    };
+  };
+};
 ```
 
 Let's break this down a bit. If you've worked with TypeScript in Redux or XState, you might be used to events/actions being defined as a separate type. Typically something similar to this:
@@ -53,13 +56,23 @@ type CounterEvent =
     };
 ```
 
-The benefit of doing it like this, is that you'll only have to define the event/action once. Instead, Fini requires you to define the event for each state that should respond to it. This has its own benefits:
+The benefit of doing it like this, is that you'll only have to define the event/action once. Luckily, Fini supports a version of this technique as well, which is great if you have events that are handled by multiple states.
 
-- TypeScript will complain if you don't implement the event handler, or if you implement it in a state that shouldn't support it
-- everything is kept within the same schema/type
-- slightly less typing if you don't have many duplicate events
-
-Note that duplicate events should be defined with the same payload type everywhere, otherwise TypeScript will get confused.
+```tsx
+type CounterMachine = {
+  states: {
+    idle: {};
+    counting: {};
+  };
+  // highlight-start
+  // Events are defined as optional for all states
+  events: {
+    increment: void;
+    setCount: number;
+  };
+  // highlight-end
+};
+```
 
 :::tip
 In these articles, we'll be using `camelCase` for naming events. If you [PREFER_SHOUTING_NAMES](https://twitter.com/dan_abramov/status/1191487701058543617), as is typically used with Redux and XState, that's also fine!
@@ -67,36 +80,33 @@ In these articles, we'll be using `camelCase` for naming events. If you [PREFER_
 
 ## Context
 
-Fini also supports the concept of context, also known as extended state. One of the best things about Fini, is the support for _state-specific context_, or _typestate_, as the concept is more formally called. Using typestates is an easy way to ensure you never enter new states without the required data, or try to access properties that aren't defined in a given state.
-
-Contexts are defined by supplying a second type argument to the `Machine` and `State` types. Like this:
+Fini also supports the concept of context, also known as extended state. One of the best things about Fini, is the how easy it is to add _state-specific context_, or _typestates_, as the concept is more formally called. Using typestates is an easy way to ensure you never enter new states without the required data, or try to access properties that aren't defined in a given state.
 
 ```tsx
-// Helper types for schema definitons
-import { Machine, State } from "fini";
-
-type CounterMachine = Machine<
-  {
-    idle: State<{
-      start: never;
-    }>;
-    counting: State<
-      {
+type CounterMachine = {
+  states: {
+    idle: {
+      on: {
+        start: never;
+      };
+    };
+    counting: {
+      on: {
         increment: never;
         setCount: number;
-      },
+      };
       // highlight-start
       // State-specific context
       // Only available when machine is in the `counting` state
-      { count: number }
+      context: { count: number };
       // highlight-end
-    >;
-  },
+    };
+  };
   // highlight-start
   // Common context for all states
-  { maxCount: number }
+  context: { maxCount: number };
   // highlight-end
->;
+};
 ```
 
 :::info

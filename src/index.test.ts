@@ -1,10 +1,13 @@
 import { renderHook, act } from "@testing-library/react-hooks";
-import { useMachine, Machine, State, createMachine } from "./index";
+import { useMachine, createMachine } from "./index";
 
 test("string shorthand initial state", () => {
-  type M = Machine<{
-    a: State;
-  }>;
+  type M = {
+    states: {
+      a: {};
+    };
+  };
+
   const { result } = renderHook(() =>
     useMachine<M>(
       {
@@ -14,18 +17,19 @@ test("string shorthand initial state", () => {
     )
   );
   expect(result.current.current).toBe("a");
-
   // context should be defined, even if doesn't have any initial values
   expect(result.current.context).toEqual({});
 });
 
 test("object initial state and context", () => {
-  type M = Machine<
-    {
-      a: State;
-    },
-    { prop: number }
-  >;
+  type M = {
+    states: {
+      a: {};
+    };
+    context: {
+      prop: number;
+    };
+  };
   const { result } = renderHook(() =>
     useMachine<M>(
       {
@@ -39,12 +43,16 @@ test("object initial state and context", () => {
 });
 
 test("string shorthand state transition", () => {
-  type M = Machine<{
-    a: State<{
-      p: never;
-    }>;
-    b: State;
-  }>;
+  type M = {
+    states: {
+      a: {
+        on: {
+          p: void;
+        };
+      };
+      b: {};
+    };
+  };
 
   const { result } = renderHook(() =>
     useMachine<M>(
@@ -66,12 +74,16 @@ test("string shorthand state transition", () => {
 });
 
 test("object state transition", () => {
-  type M = Machine<{
-    a: State<{
-      p: never;
-    }>;
-    b: State;
-  }>;
+  type M = {
+    states: {
+      a: {
+        on: {
+          p: void;
+        };
+      };
+      b: {};
+    };
+  };
 
   const { result } = renderHook(() =>
     useMachine<M>(
@@ -93,14 +105,16 @@ test("object state transition", () => {
 });
 
 test("shorthand context update", () => {
-  type M = Machine<
-    {
-      a: State<{
-        p: never;
-      }>;
-    },
-    { prop: string }
-  >;
+  type M = {
+    states: {
+      a: {
+        on: {
+          p: void;
+        };
+      };
+    };
+    context: { prop: string };
+  };
 
   const { result } = renderHook(() =>
     useMachine<M>(
@@ -124,15 +138,17 @@ test("shorthand context update", () => {
 });
 
 test("context and state update object", () => {
-  type M = Machine<
-    {
-      a: State<{
-        p: never;
-      }>;
-      b: State;
-    },
-    { prop: string }
-  >;
+  type M = {
+    states: {
+      a: {
+        on: {
+          p: void;
+        };
+      };
+      b: {};
+    };
+    context: { prop: string };
+  };
 
   const { result } = renderHook(() =>
     useMachine<M>(
@@ -155,12 +171,16 @@ test("context and state update object", () => {
 });
 
 test("string shorthand state transition by function", () => {
-  type M = Machine<{
-    a: State<{
-      p: never;
-    }>;
-    b: State;
-  }>;
+  type M = {
+    states: {
+      a: {
+        on: {
+          p: void;
+        };
+      };
+      b: {};
+    };
+  };
 
   const { result } = renderHook(() =>
     useMachine<M>(
@@ -182,12 +202,16 @@ test("string shorthand state transition by function", () => {
 });
 
 test("object state transition by function", () => {
-  type M = Machine<{
-    a: State<{
-      p: never;
-    }>;
-    b: State;
-  }>;
+  type M = {
+    states: {
+      a: {
+        on: {
+          p: void;
+        };
+      };
+      b: {};
+    };
+  };
 
   const { result } = renderHook(() =>
     useMachine<M>(
@@ -212,14 +236,16 @@ test("object state transition by function", () => {
 });
 
 test("shorthand context update by function", () => {
-  type M = Machine<
-    {
-      a: State<{
-        p: never;
-      }>;
-    },
-    { prop: string }
-  >;
+  type M = {
+    states: {
+      a: {
+        on: {
+          p: void;
+        };
+      };
+    };
+    context: { prop: string };
+  };
 
   const { result } = renderHook(() =>
     useMachine<M>(
@@ -243,15 +269,17 @@ test("shorthand context update by function", () => {
 });
 
 test("context and state update object by function", () => {
-  type M = Machine<
-    {
-      a: State<{
-        p: never;
-      }>;
-      b: State;
-    },
-    { prop: string }
-  >;
+  type M = {
+    states: {
+      a: {
+        on: {
+          p: void;
+        };
+      };
+      b: {};
+    };
+    context: { prop: string };
+  };
 
   const { result } = renderHook(() =>
     useMachine<M>(
@@ -274,11 +302,16 @@ test("context and state update object by function", () => {
 });
 
 test("void event handler", () => {
-  type M = Machine<{
-    state1: State<{
-      event1: never;
-    }>;
-  }>;
+  type M = {
+    states: {
+      state1: {
+        on: {
+          event1: void;
+        };
+      };
+    };
+  };
+
   const { result } = renderHook(() =>
     useMachine<M>(
       {
@@ -295,15 +328,17 @@ test("void event handler", () => {
 });
 
 test("dispatch event with payload", () => {
-  type M = Machine<
-    {
-      a: State<{
-        p: string;
-      }>;
-      b: State;
-    },
-    { prop: string }
-  >;
+  type M = {
+    states: {
+      a: {
+        on: {
+          p: string;
+        };
+      };
+      b: {};
+    };
+    context: { prop: string };
+  };
 
   const { result } = renderHook(() =>
     useMachine<M>(
@@ -325,13 +360,17 @@ test("dispatch event with payload", () => {
 });
 
 test("event handler with side-effect", () => {
-  type M = Machine<{
-    a: State<{
-      p: never;
-      next: never;
-    }>;
-    b: State;
-  }>;
+  type M = {
+    states: {
+      a: {
+        on: {
+          p: void;
+          next: void;
+        };
+      };
+      b: {};
+    };
+  };
 
   let value = "old value";
 
@@ -367,10 +406,15 @@ test("event handler with side-effect", () => {
 });
 
 test("entry effect on initial state", () => {
-  type M = Machine<{
-    a: State<{ stop: never }>;
-    b: State;
-  }>;
+  type M = {
+    states: {
+      a: {};
+      b: {};
+    };
+    events: {
+      stop: void;
+    };
+  };
 
   const cleanupFn = jest.fn();
 
@@ -406,10 +450,17 @@ test("entry effect on initial state", () => {
 });
 
 test("exit and entry effect", async () => {
-  type M = Machine<{
-    a: State<{ next: never }>;
-    b: State<{ previous: never }, { prop: string }>;
-  }>;
+  type M = {
+    states: {
+      a: {
+        on: { next: void };
+      };
+      b: {
+        on: { previous: void };
+        context: { prop: string };
+      };
+    };
+  };
 
   const effects: string[] = [];
 
@@ -436,7 +487,7 @@ test("exit and entry effect", async () => {
           },
         },
         b: {
-          $entry: (machine: any) => {
+          $entry: (machine) => {
             effects.push("entry");
             // should be called with the updated context
             expect(machine.context.prop).toEqual("test");
@@ -489,15 +540,17 @@ test("exit and entry effect", async () => {
 });
 
 test("passing machine from createMachine into useMachine", () => {
-  type M = Machine<
-    {
-      a: State<{
-        p: string;
-      }>;
-      b: State;
-    },
-    { prop: string }
-  >;
+  type M = {
+    states: {
+      a: {
+        on: {
+          p: string;
+        };
+      };
+      b: {};
+    };
+    context: { prop: string };
+  };
 
   const machine = createMachine<M>({
     a: {
@@ -520,18 +573,22 @@ test("passing machine from createMachine into useMachine", () => {
 /* #### Various examples #### */
 
 test("simple counter example", () => {
-  type CounterMachine = Machine<
-    {
-      counting: State<{
-        increment: never;
-        decrement: never;
-      }>;
-      maxedOut: State<{
-        reset: never;
-      }>;
-    },
-    { count: number }
-  >;
+  type CounterMachine = {
+    states: {
+      counting: {
+        on: {
+          increment: void;
+          decrement: void;
+        };
+      };
+      maxedOut: {
+        on: {
+          reset: void;
+        };
+      };
+    };
+    context: { count: number };
+  };
 
   const { result } = renderHook(() =>
     useMachine<CounterMachine>(
@@ -601,28 +658,34 @@ test("async thing", async () => {
     age: number;
   };
 
-  type FetcherMachine = Machine<{
-    initial: State<{
-      fetch: string;
-    }>;
-    fetching: State<
-      {
-        succeeded: User;
-        failed: string;
-      },
-      { params: { id: string } }
-    >;
-    success: State<
-      {
-        refetch: never;
-      },
-      {
-        params: { id: string };
-        user: User;
-      }
-    >;
-    error: State<{}, { error: string }>;
-  }>;
+  type FetcherMachine = {
+    states: {
+      initial: {
+        on: {
+          fetch: string;
+        };
+      };
+      fetching: {
+        on: {
+          succeeded: User;
+          failed: string;
+        };
+        context: { params: { id: string } };
+      };
+      success: {
+        on: {
+          refetch: void;
+        };
+        context: {
+          params: { id: string };
+          user: User;
+        };
+      };
+      error: {
+        context: { error: string };
+      };
+    };
+  };
 
   const fetchUser = (id: string): Promise<User> =>
     new Promise((resolve) =>
@@ -718,38 +781,42 @@ test("login machine", async () => {
   type LoginParams = { email: string; password: string };
 
   // First, define the schema for the machine
-  type LoginMachine = Machine<{
-    initial: State<{
-      // Specify an event handler with the `Event` helper type,
-      // which accepts a type argument for the event payload
-      login: LoginParams;
-    }>;
-    fetching: State<
-      {
-        succeeded: User;
-        failed: string;
-      },
-      // Add state-specific context data. TypeScript will only let you
-      // access `context.params` while in the `fetching` state
-      // (or any other state that specifies the property)
-      { params: LoginParams }
-    >;
-    loggedIn: State<
-      {
-        logout: never;
-      },
-      {
-        params: LoginParams;
-        user: User;
-      }
-    >;
-    error: State<
-      {
-        retry: never;
-      },
-      { error: string; params: LoginParams }
-    >;
-  }>;
+  type LoginMachine = {
+    states: {
+      initial: {
+        on: {
+          // Specify an event handler with the `Event` helper type,
+          // which accepts a type argument for the event payload
+          login: LoginParams;
+        };
+      };
+      fetching: {
+        on: {
+          succeeded: User;
+          failed: string;
+        };
+        // Add state-specific context data. TypeScript will only let you
+        // access `context.params` while in the `fetching` state
+        // (or any other state that specifies the property)
+        context: { params: LoginParams };
+      };
+      loggedIn: {
+        on: {
+          logout: void;
+        };
+        context: {
+          params: LoginParams;
+          user: User;
+        };
+      };
+      error: {
+        on: {
+          retry: void;
+        };
+        context: { error: string; params: LoginParams };
+      };
+    };
+  };
 
   let succeed = true;
 
@@ -871,19 +938,25 @@ test("login machine", async () => {
 });
 
 test("counter example with enter and exit effects", () => {
-  type CounterMachine = Machine<
-    {
-      idle: State<{ start: never }>;
-      counting: State<{
-        increment: never;
-        pause: never;
-        stop: never;
-      }>;
-      paused: State<{ resume: never }>;
-      stopped: State;
-    },
-    { count: number }
-  >;
+  type CounterMachine = {
+    states: {
+      idle: {
+        on: { start: void };
+      };
+      counting: {
+        on: {
+          increment: void;
+          pause: void;
+          stop: void;
+        };
+      };
+      paused: {
+        on: { resume: void };
+      };
+      stopped: {};
+    };
+    context: { count: number };
+  };
 
   const { result } = renderHook(() =>
     useMachine<CounterMachine>(
