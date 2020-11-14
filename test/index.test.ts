@@ -1,5 +1,13 @@
 import { renderHook, act } from "@testing-library/react-hooks";
-import { useMachine, createMachine } from "./index";
+import { useMachine, createMachine } from "../src/index";
+import { suite } from "uvu";
+import { is, equal, type, ok, not } from "uvu/assert";
+
+const test = suite("useMachine");
+
+test.before(() => {
+  global.__DEV__ = true;
+});
 
 test("string shorthand initial state", () => {
   type M = {
@@ -16,9 +24,9 @@ test("string shorthand initial state", () => {
       "a"
     )
   );
-  expect(result.current.current).toBe("a");
+  is(result.current.current, "a");
   // context should be defined, even if doesn't have any initial values
-  expect(result.current.context).toEqual({});
+  equal(result.current.context, {});
 });
 
 test("object initial state and context", () => {
@@ -38,8 +46,8 @@ test("object initial state and context", () => {
       { state: "a", context: { prop: 123 } }
     )
   );
-  expect(result.current.current).toBe("a");
-  expect(result.current.context.prop).toBe(123);
+  is(result.current.current, "a");
+  is(result.current.context.prop, 123);
 });
 
 test("string shorthand state transition", () => {
@@ -70,7 +78,7 @@ test("string shorthand state transition", () => {
     result.current.p();
   });
 
-  expect(result.current.current).toBe("b");
+  is(result.current.current, "b");
 });
 
 test("object state transition", () => {
@@ -101,7 +109,7 @@ test("object state transition", () => {
     result.current.p();
   });
 
-  expect(result.current.current).toBe("b");
+  is(result.current.current, "b");
 });
 
 test("shorthand context update", () => {
@@ -131,10 +139,10 @@ test("shorthand context update", () => {
     result.current.p();
   });
 
-  expect(result.current.context.prop).toBe("new value");
+  is(result.current.context.prop, "new value");
 
   // shouldn't change state
-  expect(result.current.current).toBe("a");
+  is(result.current.current, "a");
 });
 
 test("context and state update object", () => {
@@ -166,8 +174,8 @@ test("context and state update object", () => {
     result.current.p();
   });
 
-  expect(result.current.current).toBe("b");
-  expect(result.current.context.prop).toBe("new value");
+  is(result.current.current, "b");
+  is(result.current.context.prop, "new value");
 });
 
 test("string shorthand state transition by function", () => {
@@ -198,7 +206,7 @@ test("string shorthand state transition by function", () => {
     result.current.p();
   });
 
-  expect(result.current.current).toBe("b");
+  is(result.current.current, "b");
 });
 
 test("object state transition by function", () => {
@@ -229,10 +237,12 @@ test("object state transition by function", () => {
 
   act(() => {
     result.current.p();
-    result.current.p();
+    console.log(result.current.p);
+
+    // result.current.p();
   });
 
-  expect(result.current.current).toBe("b");
+  is(result.current.current, "b");
 });
 
 test("shorthand context update by function", () => {
@@ -262,10 +272,10 @@ test("shorthand context update by function", () => {
     result.current.p();
   });
 
-  expect(result.current.context.prop).toBe("new value");
+  is(result.current.context.prop, "new value");
 
   // shouldn't change state
-  expect(result.current.current).toBe("a");
+  is(result.current.current, "a");
 });
 
 test("context and state update object by function", () => {
@@ -297,8 +307,8 @@ test("context and state update object by function", () => {
     result.current.p();
   });
 
-  expect(result.current.context.prop).toBe("new value");
-  expect(result.current.current).toBe("b");
+  is(result.current.context.prop, "new value");
+  is(result.current.current, "b");
 });
 
 test("void event handler", () => {
@@ -316,7 +326,7 @@ test("void event handler", () => {
     useMachine<M>(
       {
         state1: {
-          event1: () => {},
+          event1: () => void 0,
         },
       },
       "state1"
@@ -324,7 +334,7 @@ test("void event handler", () => {
   );
   act(() => result.current.event1());
 
-  expect(result.current.current).toBe("state1");
+  is(result.current.current, "state1");
 });
 
 test("dispatch event with payload", () => {
@@ -356,7 +366,7 @@ test("dispatch event with payload", () => {
     result.current.p("new value");
   });
 
-  expect(result.current.context.prop).toBe("new value");
+  is(result.current.context.prop, "new value");
 });
 
 test("event handler with side-effect", () => {
@@ -395,14 +405,14 @@ test("event handler with side-effect", () => {
     result.current.p();
   });
 
-  expect(value).toBe("new value");
+  is(value, "new value");
 
   act(() => {
     result.current.next();
   });
 
   // should have run cleanup
-  expect(value).toBe("final value");
+  is(value, "final value");
 });
 
 test("entry effect on initial state", () => {
@@ -416,20 +426,22 @@ test("entry effect on initial state", () => {
     };
   };
 
-  const cleanupFn = jest.fn();
-
-  const entryEffect: any = jest.fn((machine: any) => {
-    expect(machine.previousState).toBe(undefined);
-    expect(machine.state).toBe("a");
-    expect(machine.context).toEqual({});
-    return cleanupFn;
-  });
+  let hasRunEffect = false;
+  let hasCleanedUp = false;
 
   const { result } = renderHook(() =>
     useMachine<M>(
       {
         a: {
-          $entry: entryEffect,
+          $entry: (machine: any) => {
+            is(machine.previousState, undefined);
+            is(machine.state, "a");
+            equal(machine.context, {});
+            hasRunEffect = true;
+            return () => {
+              hasCleanedUp = true;
+            };
+          },
           stop: "b",
         },
         b: {},
@@ -438,15 +450,15 @@ test("entry effect on initial state", () => {
     )
   );
 
-  expect(entryEffect).toHaveBeenCalledTimes(1);
-  expect(cleanupFn).not.toHaveBeenCalled();
+  ok(hasRunEffect);
+  not.ok(hasCleanedUp);
 
   act(() => {
     result.current.stop();
   });
 
   // Should run cleanup upon leaving the state
-  expect(cleanupFn).toHaveBeenCalledTimes(1);
+  ok(hasCleanedUp);
 });
 
 test("exit and entry effect", async () => {
@@ -472,10 +484,9 @@ test("exit and entry effect", async () => {
             effects.push("exit");
             // should be called with the updated context
             // @ts-ignore: TS doesn't know the next state
-            expect(machine.context.prop).toEqual("test");
-            expect(machine.nextState).toBe("b");
-            expect(machine.state).toBe("a");
-            expect(machine.dispatch.next).toBeDefined();
+            is(machine.context.prop, "test");
+            is(machine.nextState, "b");
+            is(machine.state, "a");
 
             return () => effects.push("exit cleanup");
           },
@@ -490,10 +501,10 @@ test("exit and entry effect", async () => {
           $entry: (machine) => {
             effects.push("entry");
             // should be called with the updated context
-            expect(machine.context.prop).toEqual("test");
-            expect(machine.previousState).toBe("a");
-            expect(machine.state).toBe("b");
-            expect(machine.dispatch.next).toBeDefined();
+            is(machine.context.prop, "test");
+            is(machine.previousState, "a");
+            is(machine.state, "b");
+            type(machine.dispatch.next, "function");
             return () => effects.push("entry cleanup");
           },
           previous: "a",
@@ -503,32 +514,32 @@ test("exit and entry effect", async () => {
     )
   );
 
-  expect(effects).toEqual([]);
+  equal(effects, []);
 
   act(() => {
     result.current.next();
   });
 
-  expect(result.current.current).toBe("b");
+  is(result.current.current, "b");
 
   // should have been called in the correct order
-  expect(effects).toEqual(["exit", "exit cleanup", "entry"]);
+  equal(effects, ["exit", "exit cleanup", "entry"]);
 
   act(() => {
     result.current.previous();
   });
 
-  expect(result.current.current).toBe("a");
+  is(result.current.current, "a");
 
   // should cleanup entry effect upon leaving
-  expect(effects).toEqual(["exit", "exit cleanup", "entry", "entry cleanup"]);
+  equal(effects, ["exit", "exit cleanup", "entry", "entry cleanup"]);
 
   act(() => {
     result.current.next();
   });
 
   // should run effects again
-  expect(effects).toEqual([
+  equal(effects, [
     "exit",
     "exit cleanup",
     "entry",
@@ -567,7 +578,7 @@ test("passing machine from createMachine into useMachine", () => {
     result.current.p("new value");
   });
 
-  expect(result.current.context.prop).toBe("new value");
+  is(result.current.context.prop, "new value");
 });
 
 /* #### Various examples #### */
@@ -622,7 +633,7 @@ test("simple counter example", () => {
     result.current.increment();
   });
 
-  expect(result.current.context.count).toBe(1);
+  is(result.current.context.count, 1);
 
   act(() => {
     result.current.increment();
@@ -632,7 +643,7 @@ test("simple counter example", () => {
     result.current.decrement();
   });
 
-  expect(result.current.context.count).toBe(4);
+  is(result.current.context.count, 4);
 
   act(() => {
     result.current.increment();
@@ -641,15 +652,15 @@ test("simple counter example", () => {
     result.current.increment();
   });
 
-  expect(result.current.context.count).toBe(7);
-  expect(result.current.current).toBe("maxedOut");
+  is(result.current.context.count, 7);
+  is(result.current.current, "maxedOut");
 
   act(() => {
     result.current.reset();
   });
 
-  expect(result.current.context.count).toBe(0);
-  expect(result.current.current).toBe("counting");
+  is(result.current.context.count, 0);
+  is(result.current.current, "counting");
 });
 
 test("async thing", async () => {
@@ -691,7 +702,7 @@ test("async thing", async () => {
     new Promise((resolve) =>
       setTimeout(() => {
         resolve({ name: "Fini", age: 100 });
-      }, 300)
+      }, 30)
     );
 
   const { result, waitForNextUpdate } = renderHook(() =>
@@ -755,21 +766,21 @@ test("async thing", async () => {
     result.current.fetch("test");
   });
 
-  expect(result.current.current).toBe("fetching");
+  is(result.current.current, "fetching");
 
   await waitForNextUpdate();
 
-  expect(result.current.current).toBe("success");
+  is(result.current.current, "success");
 
   act(() => {
     result.current.refetch();
   });
 
-  expect(result.current.current).toBe("fetching");
+  is(result.current.current, "fetching");
 
   await waitForNextUpdate();
 
-  expect(result.current.current).toBe("success");
+  is(result.current.current, "success");
 });
 
 test("login machine", async () => {
@@ -828,7 +839,7 @@ test("login machine", async () => {
         } else {
           reject("something went wrong");
         }
-      }, 300)
+      }, 30)
     );
 
   const { result, waitForNextUpdate } = renderHook(() =>
@@ -907,25 +918,25 @@ test("login machine", async () => {
     result.current.login({ email: "test@example.com", password: "hunter2" });
   });
 
-  expect(result.current.current).toBe("fetching");
+  is(result.current.current, "fetching");
 
   await waitForNextUpdate();
 
-  expect(result.current.current).toBe("loggedIn");
+  is(result.current.current, "loggedIn");
 
   act(() => {
     result.current.retry();
   });
 
-  expect(result.current.current).toBe("loggedIn");
+  is(result.current.current, "loggedIn");
   // @ts-expect-error
-  expect(result.current.context.user).toEqual({ id: "123", name: "Fini" });
+  equal(result.current.context.user, { id: "123", name: "Fini" });
 
   act(() => {
     result.current.logout();
   });
 
-  expect(result.current.current).toBe("initial");
+  is(result.current.current, "initial");
   succeed = false;
 
   act(() => {
@@ -934,7 +945,7 @@ test("login machine", async () => {
 
   await waitForNextUpdate();
 
-  expect(result.current.current).toBe("error");
+  is(result.current.current, "error");
 });
 
 test("counter example with enter and exit effects", () => {
@@ -994,5 +1005,36 @@ test("counter example with enter and exit effects", () => {
   });
 
   // entry successfully dispatched action
-  expect(result.current.context.count).toBe(1);
+  is(result.current.context.count, 1);
 });
+
+test("dispatch event that isnt handled", () => {
+  type M = {
+    states: {
+      s1: {
+        on: {
+          e: void;
+        };
+      };
+      s2: {};
+    };
+  };
+
+  const { result } = renderHook(() =>
+    useMachine<M>(
+      {
+        s1: {
+          e: () => void 0,
+        },
+        s2: {},
+      },
+      "s2"
+    )
+  );
+
+  act(() => {
+    result.current.e();
+  });
+});
+
+test.run();
