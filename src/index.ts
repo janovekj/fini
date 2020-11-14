@@ -538,11 +538,10 @@ export function useMachine<M extends Machine>(
       {},
       ...Object.keys(schema).map((s) => ({
         [s]: s === reducerState.state.current,
-      }))
+      })),
+      dispatcher
     ),
     context: reducerState.state.context ?? {},
-    // @ts-ignore
-    ...dispatcher,
   };
 
   return state;
