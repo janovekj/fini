@@ -12,22 +12,26 @@ The `useMachine` hook returns an object with all the stuff you need to work with
 
 ### Dispatching events
 
-Dispatching events is a bit different in Fini, compared to how it works with `useReducer`, `Redux` and `XState`. Instead of using a `dispatch` function to dispatch action/event objects, the object returned from `useMachine` provides event functions that are pre-bound to Fini's internal dispatch function. This means you can dispatch events as simple as this:
+Dispatching events is a bit different in Fini, compared to how it works with `useReducer`, `Redux` and `XState`. Instead of using a `dispatch` function to dispatch action/event objects, the object returned from `useMachine` provides event functions that are pre-bound to Fini's internal dispatch function. This means dispatching events becomes as easy as this:
 
 ```tsx
-type CounterMachine = Machine<{
-  counting: State<{
-    increment: never
-    set: number
-  }>
-}>
+type CounterMachine = {
+  states: {
+    counting: {
+      on: {
+        increment: void
+        set: number
+      }
+    }
+  }
+}
 
 const counterMachine = useMachine<CounterMachine>(...);
 
 return <div>
   // highlight-start
-  <button onClick={() => counterMachine.increment()}>Increment!</button>
   <button onClick={() => counterMachine.set(100)}>Set to 100</button>
+  <button onClick={counterMachine.increment}>Increment!</button>
   // highlight-end
 </div>
 ```
@@ -41,21 +45,23 @@ As mentioned, the `machine` object also contains everything you need to know abo
 To examine its properties, it's easiest with an example.
 
 ```tsx
-type CounterMachine = Machine<
-  {
-    idle: State<{
-      start: never;
-    }>;
-    counting: State<
-      {
+type CounterMachine = {
+  states: {
+    idle: {
+      on: {
+        start: never;
+      };
+    };
+    counting: {
+      on: {
         increment: never;
         set: number;
-      },
-      { count: number }
-    >;
-  },
-  { maxCount: number }
->;
+      };
+      context: { count: number };
+    };
+  };
+  context: { maxCount: number };
+};
 
 const counterMachine = useMachine(
   {

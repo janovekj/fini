@@ -97,16 +97,18 @@ It's also completely fine to not return nothing at all. This is often the case i
 A state machine would be quite useless if we couldn't pass along data with the events we're dispatching. If the event supports a payload, this is the second parameter passed into the event handler function:
 
 ```tsx
-type CounterMachine = Machine<
-  {
+type CounterMachine = {
+  states: {
     counting: {
-      setCount: number;
+      on: {
+        setCount: number;
+      };
     };
-  },
-  {
+  };
+  context: {
     count: number;
-  }
->;
+  };
+};
 
 useMachine({
   counting: {
@@ -160,7 +162,7 @@ useMachine({
 });
 ```
 
-## Life cycle effects
+## State life cycle effects
 
 Sometimes you'll want to define effects that should run every time a state is entered or exited. Fini allows you to achieve this by specifying the special `$entry` and `$exit` events, respectively.
 

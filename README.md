@@ -32,30 +32,36 @@ Simple counter example ([Codesandbox](https://codesandbox.io/s/fini-counter-exam
 
 ```tsx
 import React from "react";
-import { useMachine, Machine, State } from "fini";
+import { useMachine } from "fini";
 
 // Define a typed schema for the machine
-type CounterMachine = Machine<
-  {
+type CounterMachine = {
+  states: {
     // Idle state which handles the `start` event
-    idle: State<{
-      start: never;
-    }>;
+    idle: {
+      on: {
+        start: void;
+      };
+    };
     // Counting state which handles the `increment` and `set` events
-    counting: State<
-      {
-        increment: never;
+    counting: {
+      on: {
+        increment: void;
         // the `set` event comes with a number payload
         set: number;
-      },
+      };
       // Contextual data that is specific to,
       // and only available in, the `counting` state
-      { count: number }
-    >;
-  },
+      context: { count: number };
+    };
+  };
   // Context that is common for all states
-  { maxCount: number }
->;
+  context: { maxCount: number };
+  // Events that may or may not be handled by all states
+  events: {
+    log: void;
+  };
+};
 
 const App = () => {
   const machine = useMachine<CounterMachine>(
@@ -70,6 +76,10 @@ const App = () => {
             count: 0,
           },
         }),
+        log: ({ exec }) => {
+          // execute a side-effect
+          exec(() => console.log("Haven't started counting yet"));
+        },
       },
       counting: {
         // Updates the context by incrementing the current count,
@@ -85,6 +95,9 @@ const App = () => {
           ...context,
           count,
         }),
+        log: ({ exec, context }) => {
+          exec(() => console.log(`Current count is ${context.count}`));
+        },
       },
     },
     // The initial state and context
@@ -105,6 +118,7 @@ const App = () => {
           <button onClick={() => machine.set(100)}>Set to 100</button>
         </div>
       )}
+      <button onClick={machine.log}>Log the count</button>
     </div>
   );
 };
