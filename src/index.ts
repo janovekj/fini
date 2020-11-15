@@ -6,9 +6,9 @@ import {
 
 const dev = {
   warn: (...args: Parameters<typeof console.warn>) =>
-    __DEV__ && console.warn(args),
-  error: (...args: Parameters<typeof console.warn>) =>
-    __DEV__ && console.error(args),
+    __DEV__ && console.warn(...args),
+  error: (...args: Parameters<typeof console.error>) =>
+    __DEV__ && console.error(...args),
 };
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
@@ -341,7 +341,7 @@ export const createMachine = <M extends Machine>(schema: Schema<M>) => ({
       if (!eventHandlerMap) {
         if (exitEffect) {
           dev.error(
-            `Exit effect was found on state '${state.current}' where no event handlers are defined. This is nonsensical behaviour, as the state can never be exited.`
+            `Exit effect was found on state '${state.current}' where no event handlers are defined. This is undefined behaviour, as the state can never be exited.`
           );
         }
 

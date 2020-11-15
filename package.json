@@ -56,5 +56,10 @@
   },
   "dependencies": {
     "use-effect-reducer": "^0.7.0"
+  },
+  "babel": {
+    "plugins": [
+      "babel-plugin-dev-expression"
+    ]
   }
 }
