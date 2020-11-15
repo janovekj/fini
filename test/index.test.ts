@@ -739,7 +739,7 @@ test("async thing", async () => {
     };
   };
 
-  const fetchUser = (id: string): Promise<User> =>
+  const fetchUser = (_: string): Promise<User> =>
     new Promise((resolve) =>
       setTimeout(() => {
         resolve({ name: "Fini", age: 100 });
@@ -872,7 +872,7 @@ test("login machine", async () => {
 
   let succeed = true;
 
-  const login = (params: LoginParams): Promise<User> =>
+  const login = (_: LoginParams): Promise<User> =>
     new Promise((resolve, reject) =>
       setTimeout(() => {
         if (succeed) {
@@ -897,7 +897,7 @@ test("login machine", async () => {
            *    (and even dispatch new events!)
            * 2. the event payload
            */
-          login: ({ context, exec }, { email, password }) => {
+          login: ({ exec }, { email, password }) => {
             // Prepare the login function which will be executed upon state change
             exec((dispatch) => {
               login({ email, password })

@@ -323,7 +323,9 @@ const isCreateMachineResult = <M extends Machine>(
 
 type MachineDefinition<M extends Machine> = Schema<M> | CreateMachineResult<M>;
 
-export const createMachine = <M extends Machine>(schema: Schema<M>) => ({
+export const createMachine = <M extends Machine>(
+  schema: Schema<M>
+): CreateMachineResult<M> => ({
   schema,
   createReducer: (dispatcher: Dispatcher<MachineTypeWithDefaults<M>>) => {
     type MachineWithDefaults = MachineTypeWithDefaults<M>;
