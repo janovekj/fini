@@ -245,6 +245,39 @@ test("object state transition by function", () => {
   is(result.current.current, "b");
 });
 
+test("shorthand context update by object", () => {
+  type M = {
+    states: {
+      a: {
+        on: {
+          p: void;
+        };
+      };
+    };
+    context: { prop: string };
+  };
+
+  const { result } = renderHook(() =>
+    useMachine<M>(
+      {
+        a: {
+          p: { prop: "new value" },
+        },
+      },
+      { state: "a", context: { prop: "old value" } }
+    )
+  );
+
+  act(() => {
+    result.current.p();
+  });
+
+  is(result.current.context.prop, "new value");
+
+  // shouldn't change state
+  is(result.current.current, "a");
+});
+
 test("shorthand context update by function", () => {
   type M = {
     states: {
