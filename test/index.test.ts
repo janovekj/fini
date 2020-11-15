@@ -492,7 +492,7 @@ test("entry effect on initial state", () => {
   );
 
   ok(hasRunEffect);
-  not.ok(hasCleanedUp);
+  not(hasCleanedUp);
 
   act(() => {
     result.current.stop();
