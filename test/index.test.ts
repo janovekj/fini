@@ -254,7 +254,7 @@ test("shorthand context update by object", () => {
         };
       };
     };
-    context: { prop: string };
+    context: { prop: string; anotherProp: string };
   };
 
   const { result } = renderHook(() =>
@@ -264,7 +264,7 @@ test("shorthand context update by object", () => {
           p: { prop: "new value" },
         },
       },
-      { state: "a", context: { prop: "old value" } }
+      { state: "a", context: { prop: "old value", anotherProp: "some value" } }
     )
   );
 
@@ -272,7 +272,11 @@ test("shorthand context update by object", () => {
     result.current.p();
   });
 
+  // should only update the returned value
   is(result.current.context.prop, "new value");
+
+  // the other value shouldn't have changed
+  is(result.current.context.anotherProp, "some value");
 
   // shouldn't change state
   is(result.current.current, "a");
@@ -287,7 +291,7 @@ test("shorthand context update by function", () => {
         };
       };
     };
-    context: { prop: string };
+    context: { prop: string; anotherProp: string };
   };
 
   const { result } = renderHook(() =>
@@ -297,7 +301,7 @@ test("shorthand context update by function", () => {
           p: () => ({ prop: "new value" }),
         },
       },
-      { state: "a", context: { prop: "old value" } }
+      { state: "a", context: { prop: "old value", anotherProp: "some value" } }
     )
   );
 
@@ -305,7 +309,11 @@ test("shorthand context update by function", () => {
     result.current.p();
   });
 
+  // should only update the returned value
   is(result.current.context.prop, "new value");
+
+  // the other value shouldn't have changed
+  is(result.current.context.anotherProp, "some value");
 
   // shouldn't change state
   is(result.current.current, "a");

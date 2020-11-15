@@ -88,11 +88,12 @@ type CompatibleContextStates<
 }[keyof S];
 
 /** Transition result where the state is the same,
- * and doesn't have to be explicitly defined */
-type ContextUpdate<
-  S extends StateMapType,
-  Current extends keyof S
-> = S[Current]["context"];
+ * and doesn't have to be explicitly defined.
+ * The context returned in this update can be partial,
+ * and will be spread onto the existing context */
+type ContextUpdate<S extends StateMapType, Current extends keyof S> = Partial<
+  S[Current]["context"]
+>;
 
 /** Object describing the next state (and context, if required) for a transition */
 type UpdateObject<S extends StateMapType> = {
@@ -404,7 +405,10 @@ export const createMachine = <M extends Machine>(schema: Schema<M>) => ({
           return "state" in update
             ? // @ts-ignore
               update.context
-            : update;
+            : {
+                ...state.context,
+                ...update,
+              };
         } else if (typeof update === "string" && update in schema) {
           return state.context;
         } else if (update === undefined) {
