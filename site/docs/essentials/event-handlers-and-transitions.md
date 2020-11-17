@@ -100,7 +100,7 @@ A state machine would be quite useless if we couldn't pass along data with the e
 type CounterMachine = {
   states: {
     counting: {
-      on: {
+      events: {
         setCount: number;
       };
     };

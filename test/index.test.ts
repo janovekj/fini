@@ -54,7 +54,7 @@ test("string shorthand state transition", () => {
   type M = {
     states: {
       a: {
-        on: {
+        events: {
           p: void;
         };
       };
@@ -85,7 +85,7 @@ test("object state transition", () => {
   type M = {
     states: {
       a: {
-        on: {
+        events: {
           p: void;
         };
       };
@@ -116,7 +116,7 @@ test("shorthand context update", () => {
   type M = {
     states: {
       a: {
-        on: {
+        events: {
           p: void;
         };
       };
@@ -149,7 +149,7 @@ test("context and state update object", () => {
   type M = {
     states: {
       a: {
-        on: {
+        events: {
           p: void;
         };
       };
@@ -182,7 +182,7 @@ test("string shorthand state transition by function", () => {
   type M = {
     states: {
       a: {
-        on: {
+        events: {
           p: void;
         };
       };
@@ -213,7 +213,7 @@ test("object state transition by function", () => {
   type M = {
     states: {
       a: {
-        on: {
+        events: {
           p: void;
         };
       };
@@ -249,7 +249,7 @@ test("shorthand context update by object", () => {
   type M = {
     states: {
       a: {
-        on: {
+        events: {
           p: void;
         };
       };
@@ -286,7 +286,7 @@ test("shorthand context update by function", () => {
   type M = {
     states: {
       a: {
-        on: {
+        events: {
           p: void;
         };
       };
@@ -323,7 +323,7 @@ test("context and state update object by function", () => {
   type M = {
     states: {
       a: {
-        on: {
+        events: {
           p: void;
         };
       };
@@ -356,7 +356,7 @@ test("void event handler", () => {
   type M = {
     states: {
       state1: {
-        on: {
+        events: {
           event1: void;
         };
       };
@@ -382,7 +382,7 @@ test("dispatch event with payload", () => {
   type M = {
     states: {
       a: {
-        on: {
+        events: {
           p: string;
         };
       };
@@ -414,7 +414,7 @@ test("event handler with side-effect", () => {
   type M = {
     states: {
       a: {
-        on: {
+        events: {
           p: void;
           next: void;
         };
@@ -506,10 +506,10 @@ test("exit and entry effect", async () => {
   type M = {
     states: {
       a: {
-        on: { next: void };
+        events: { next: void };
       };
       b: {
-        on: { previous: void };
+        events: { previous: void };
         context: { prop: string };
       };
     };
@@ -595,7 +595,7 @@ test("passing machine from createMachine into useMachine", () => {
   type M = {
     states: {
       a: {
-        on: {
+        events: {
           p: string;
         };
       };
@@ -628,13 +628,13 @@ test("simple counter example", () => {
   type CounterMachine = {
     states: {
       counting: {
-        on: {
+        events: {
           increment: void;
           decrement: void;
         };
       };
       maxedOut: {
-        on: {
+        events: {
           reset: void;
         };
       };
@@ -713,19 +713,19 @@ test("async thing", async () => {
   type FetcherMachine = {
     states: {
       initial: {
-        on: {
+        events: {
           fetch: string;
         };
       };
       fetching: {
-        on: {
+        events: {
           succeeded: User;
           failed: string;
         };
         context: { params: { id: string } };
       };
       success: {
-        on: {
+        events: {
           refetch: void;
         };
         context: {
@@ -836,14 +836,14 @@ test("login machine", async () => {
   type LoginMachine = {
     states: {
       initial: {
-        on: {
+        events: {
           // Specify an event handler with the `Event` helper type,
           // which accepts a type argument for the event payload
           login: LoginParams;
         };
       };
       fetching: {
-        on: {
+        events: {
           succeeded: User;
           failed: string;
         };
@@ -853,7 +853,7 @@ test("login machine", async () => {
         context: { params: LoginParams };
       };
       loggedIn: {
-        on: {
+        events: {
           logout: void;
         };
         context: {
@@ -862,7 +862,7 @@ test("login machine", async () => {
         };
       };
       error: {
-        on: {
+        events: {
           retry: void;
         };
         context: { error: string; params: LoginParams };
@@ -993,17 +993,17 @@ test("counter example with enter and exit effects", () => {
   type CounterMachine = {
     states: {
       idle: {
-        on: { start: void };
+        events: { start: void };
       };
       counting: {
-        on: {
+        events: {
           increment: void;
           pause: void;
           stop: void;
         };
       };
       paused: {
-        on: { resume: void };
+        events: { resume: void };
       };
       stopped: {};
     };
@@ -1053,7 +1053,7 @@ test("dispatch event that isnt handled", () => {
   type M = {
     states: {
       s1: {
-        on: {
+        events: {
           e: void;
         };
       };

@@ -42,7 +42,7 @@ type ContextType = {
 
 type State = {
   context: ContextType;
-  on: EventMapType;
+  events: EventMapType;
 };
 
 type StateMapType = {
@@ -63,7 +63,7 @@ type MachineType = {
 
 type StateWithDefaults<S extends Partial<State>> = {
   context: TypeOrEmpty<S["context"]>;
-  on: TypeOrEmpty<S["on"]>;
+  events: TypeOrEmpty<S["events"]>;
 };
 
 type StateMapDefinitionWithDefaults<S extends StateMapDefinition> = {
@@ -116,7 +116,9 @@ type DispatchEvent<P> = P extends void ? () => void : (payload: P) => void;
 type Dispatcher<M extends MachineType> = UnionToIntersection<
   {
     [K in keyof States<M>]: {
-      [E in keyof States<M>[K]["on"]]: DispatchEvent<States<M>[K]["on"][E]>;
+      [E in keyof States<M>[K]["events"]]: DispatchEvent<
+        States<M>[K]["events"][E]
+      >;
     };
   }[keyof States<M>]
 > &
@@ -127,7 +129,7 @@ type Dispatcher<M extends MachineType> = UnionToIntersection<
 type States<M extends MachineType> = {
   [K in keyof M["states"]]: {
     context: Override<M["context"], M["states"][K]["context"]>;
-    on: M["states"][K]["on"];
+    events: M["states"][K]["events"];
   };
 };
 
@@ -212,7 +214,11 @@ type StateExitEffect<M extends MachineType> = (
 ) => void;
 
 type EventHandlerMap<M extends MachineType, K extends keyof States<M>> = {
-  [E in keyof States<M>[K]["on"]]: EventHandler<M, K, States<M>[K]["on"][E]>;
+  [E in keyof States<M>[K]["events"]]: EventHandler<
+    M,
+    K,
+    States<M>[K]["events"][E]
+  >;
 } &
   {
     [E in keyof M["events"]]?: EventHandler<M, K, M["events"][E]>;
@@ -223,10 +229,10 @@ type EventHandlerMap<M extends MachineType, K extends keyof States<M>> = {
 
 type EventObject<S extends StateMapType> = {
   [K in keyof S]: {
-    [E in keyof S[K]["on"]]: S[K]["on"][E] extends {}
-      ? { type: E; payload: S[K]["on"][E] }
+    [E in keyof S[K]["events"]]: S[K]["events"][E] extends {}
+      ? { type: E; payload: S[K]["events"][E] }
       : { type: E };
-  }[keyof S[K]["on"]];
+  }[keyof S[K]["events"]];
 }[keyof S];
 
 type MachineResult<M extends Machine> = Expand<

@@ -18,7 +18,7 @@ Dispatching events is a bit different in Fini, compared to how it works with `us
 type CounterMachine = {
   states: {
     counting: {
-      on: {
+      events: {
         increment: void
         set: number
       }
@@ -48,12 +48,12 @@ To examine its properties, it's easiest with an example.
 type CounterMachine = {
   states: {
     idle: {
-      on: {
+      events: {
         start: never;
       };
     };
     counting: {
-      on: {
+      events: {
         increment: never;
         set: number;
       };

@@ -17,13 +17,13 @@ type CounterMachine = {
   states: {
     // Idle state which handles the `start` event
     idle: {
-      on: {
+      events: {
         start: void;
       };
     };
     // Counting state which handles the `increment` and `set` events
     counting: {
-      on: {
+      events: {
         increment: void;
         // the `set` event comes with a number payload
         set: number;
@@ -63,14 +63,12 @@ const App = () => {
         // Updates the context by incrementing the current count,
         // if max count hasn't already been reached
         increment: ({ context }) => ({
-          ...context,
           count:
             context.count === context.maxCount
               ? context.count
               : context.count + 1,
         }),
-        set: ({ context }, count) => ({
-          ...context,
+        set: (_, count) => ({
           count,
         }),
         log: ({ exec, context }) => {

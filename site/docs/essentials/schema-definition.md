@@ -22,7 +22,7 @@ type CounterMachine = {
   states: {
     // `idle` state which supports the `start` event
     idle: {
-      on: {
+      events: {
         // Event with no payload
         start: void;
       };
@@ -30,7 +30,7 @@ type CounterMachine = {
 
     // `counting` state which supports the `increment` and `setCount` events
     counting: {
-      on: {
+      events: {
         increment: never;
         // The `setCount` event accepts a `number` payload
         setCount: number;
@@ -86,12 +86,12 @@ Fini also supports the concept of context, also known as extended state. One of 
 type CounterMachine = {
   states: {
     idle: {
-      on: {
+      events: {
         start: never;
       };
     };
     counting: {
-      on: {
+      events: {
         increment: never;
         setCount: number;
       };
