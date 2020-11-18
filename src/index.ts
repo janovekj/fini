@@ -32,53 +32,53 @@ const isFunction = (arg: any): arg is Function => typeof arg === "function";
 
 const isObject = (arg: any): arg is object => typeof arg === "object";
 
-type EventMapType = {
+interface EventMapType {
   [event: string]: any;
-};
+}
 
-type ContextType = {
+interface ContextType {
   [property: string]: any;
-};
+}
 
-type State = {
+interface State {
   context: ContextType;
   events: EventMapType;
-};
+}
 
-type StateMapType = {
+interface StateMapType {
   [state: string]: State;
-};
+}
 
-type Machine = {
+interface Machine {
   states: StateMapDefinition;
   context?: ContextType;
   events?: EventMapType;
-};
+}
 
-type MachineType = {
+interface MachineType {
   states: StateMapType;
   context: ContextType;
   events: EventMapType;
-};
+}
 
-type StateWithDefaults<S extends Partial<State>> = {
+interface StateWithDefaults<S extends Partial<State>> {
   context: TypeOrEmpty<S["context"]>;
   events: TypeOrEmpty<S["events"]>;
-};
+}
 
 type StateMapDefinitionWithDefaults<S extends StateMapDefinition> = {
   [K in keyof S]: StateWithDefaults<S[K]>;
 };
 
-type MachineTypeWithDefaults<M extends Machine> = {
+interface MachineTypeWithDefaults<M extends Machine> {
   states: StateMapDefinitionWithDefaults<M["states"]>;
   context: TypeOrEmpty<M["context"]>;
   events: TypeOrEmpty<M["events"]>;
-};
+}
 
-type StateMapDefinition = {
+interface StateMapDefinition {
   [state: string]: Partial<State>;
-};
+}
 
 type CompatibleContextStates<
   S extends StateMapType,
@@ -128,7 +128,7 @@ type Dispatcher<M extends MachineType> = UnionToIntersection<
 
 type States<M extends MachineType> = {
   [K in keyof M["states"]]: {
-    context: Override<M["context"], M["states"][K]["context"]>;
+    context: Expand<Override<M["context"], M["states"][K]["context"]>>;
     events: M["states"][K]["events"];
   };
 };
@@ -162,14 +162,14 @@ type Transition<S extends StateMapType, Current extends keyof S> = Update<
   Current
 > | void;
 
-type CreateTransitionFnMachineObject<
+interface CreateTransitionFnMachineObject<
   M extends MachineType,
   Current extends keyof States<M>
-> = {
+> {
   state: Current;
   context: States<M>[Current]["context"];
   exec: (effect: EffectFunction<M>) => void;
-};
+}
 
 type CreateTranstionFn<
   M extends MachineType,
@@ -260,10 +260,10 @@ type ReducerResultState<M extends MachineType> = {
   };
 }[keyof States<M>];
 
-type ReducerResult<M extends MachineType> = {
+interface ReducerResult<M extends MachineType> {
   state: ReducerResultState<M>;
   effects: EffectEntity<ReducerResult<M>, EventObject<States<M>>>[];
-};
+}
 
 type Schema<M extends Machine> = {
   [K in keyof States<MachineTypeWithDefaults<M>>]: EventHandlerMap<
@@ -313,7 +313,7 @@ const parseInitialState = <M extends Machine>(
   return;
 };
 
-type CreateMachineResult<M extends Machine> = {
+interface CreateMachineResult<M extends Machine> {
   schema: Schema<M>;
   createReducer: (
     dispatcher: Dispatcher<MachineTypeWithDefaults<M>>
@@ -321,7 +321,7 @@ type CreateMachineResult<M extends Machine> = {
     ReducerResult<MachineTypeWithDefaults<M>>,
     EventObject<States<MachineTypeWithDefaults<M>>>
   >;
-};
+}
 
 const isCreateMachineResult = <M extends Machine>(
   arg: MachineDefinition<M>
