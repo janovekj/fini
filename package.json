@@ -2,6 +2,7 @@
   "version": "0.7.0",
   "name": "fini",
   "author": "Jan Ove Kjærland",
+  "description": "Small and capable state machines for React",
   "license": "MIT",
   "keywords": [
     "react",
