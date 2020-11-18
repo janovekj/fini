@@ -6,9 +6,9 @@ import {
 
 const dev = {
   warn: (...args: Parameters<typeof console.warn>) =>
-    __DEV__ && console.warn(...args),
+    global.__DEV__ && console.warn(...args),
   error: (...args: Parameters<typeof console.error>) =>
-    __DEV__ && console.error(...args),
+    global.__DEV__ && console.error(...args),
 };
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;

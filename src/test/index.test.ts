@@ -1,5 +1,5 @@
 import { renderHook, act } from "@testing-library/react-hooks";
-import { useMachine, createMachine } from "../src/index";
+import { useMachine, createMachine } from "../index";
 import { suite } from "uvu";
 import { is, equal, type, ok, not } from "uvu/assert";
 

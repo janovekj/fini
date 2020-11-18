@@ -15,7 +15,7 @@
   "source": "src/index.ts",
   "main": "dist/index.js",
   "module": "dist/index.module.js",
-  "typings": "dist/index.d.ts",
+  "types": "dist/index.d.ts",
   "files": [
     "dist",
     "src"
@@ -26,8 +26,8 @@
   "scripts": {
     "build": "microbundle",
     "dev": "microbundle watch",
-    "test": "uvu -r ts-node/register test",
-    "test:watch": "watchlist src test -- yarn test",
+    "test": "uvu -r ts-node/register src/test",
+    "test:watch": "watchlist src -- yarn test",
     "lint": "eslint",
     "release": "np"
   },
