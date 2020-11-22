@@ -111,7 +111,7 @@ type Update<S extends StateMapType, Current extends keyof S> =
   | CompatibleContextStates<S, Current>
   | XOR<ContextUpdate<S, Current>, UpdateObject<S>>;
 
-type DispatchEvent<P> = P extends void ? () => void : (payload: P) => void;
+type DispatchEvent<P> = [void] extends [P] ? () => void : (payload: P) => void;
 
 type Dispatcher<M extends MachineType> = UnionToIntersection<
   {
@@ -175,7 +175,7 @@ type CreateTranstionFn<
   M extends MachineType,
   Current extends keyof States<M>,
   P extends any
-> = P extends void
+> = [void] extends [P]
   ? (
       machine: Expand<CreateTransitionFnMachineObject<M, Current>>
     ) => Transition<States<M>, Current>
