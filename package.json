@@ -27,6 +27,7 @@
   "scripts": {
     "build": "microbundle",
     "dev": "microbundle watch",
+    "prepare": "yarn build",
     "test": "uvu -r ts-node/register src/test",
     "test:watch": "watchlist src -- yarn test",
     "lint": "eslint",
