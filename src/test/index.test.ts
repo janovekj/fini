@@ -1,7 +1,7 @@
 import { renderHook, act } from "@testing-library/react-hooks";
 import { useMachine, createMachine } from "../index";
 import { suite } from "uvu";
-import { is, equal, type, ok, not } from "uvu/assert";
+import { is, equal, type, ok, not, unreachable } from "uvu/assert";
 
 const test = suite("useMachine");
 
@@ -1076,6 +1076,60 @@ test("dispatch event that isnt handled", () => {
   act(() => {
     result.current.e();
   });
+});
+
+test("don't dispatch after unmount", async () => {
+  type M = {
+    states: {
+      s1: {
+        events: {
+          e1: void;
+          e2;
+        };
+      };
+      s2: {};
+    };
+  };
+
+  let affected = false;
+  let cleanedUp = false;
+  const { result, unmount } = renderHook(() =>
+    useMachine<M>(
+      {
+        s1: {
+          e1: ({ exec }) => {
+            exec((dispatch) => {
+              const timeout = setTimeout(() => {
+                affected = true;
+                dispatch.e2();
+                unreachable();
+              }, 0);
+              unmount();
+
+              return () => {
+                clearTimeout(timeout);
+                cleanedUp = true;
+              };
+            });
+          },
+          e2: () => "s2",
+        },
+        s2: {
+          $entry: () => {
+            unreachable();
+          },
+        },
+      },
+      "s1"
+    )
+  );
+
+  act(() => {
+    result.current.e1();
+  });
+
+  not(affected);
+  ok(cleanedUp);
 });
 
 test.run();
