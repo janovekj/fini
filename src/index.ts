@@ -151,7 +151,7 @@ const createDispatcher = <M extends Machine>(
   return dispatcher;
 };
 
-type CleanupFunction = () => void;
+interface CleanupFunction extends VoidFunction {}
 type EffectFunction<M extends MachineType> = (
   dispatcher: Dispatcher<M>
 ) => void | CleanupFunction;
