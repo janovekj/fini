@@ -352,6 +352,39 @@ test("context and state update object by function", () => {
   is(result.current.current, "b");
 });
 
+test("update by update object creator", () => {
+  type M = {
+    states: {
+      a: {
+        events: {
+          p: void;
+        };
+      };
+      b: {};
+    };
+    context: { prop: string };
+  };
+
+  const { result } = renderHook(() =>
+    useMachine<M>(
+      {
+        a: {
+          p: ({ next }) => next.b({ prop: "new value" }),
+        },
+        b: {},
+      },
+      { state: "a", context: { prop: "old value" } }
+    )
+  );
+
+  act(() => {
+    result.current.p();
+  });
+
+  is(result.current.context.prop, "new value");
+  is(result.current.current, "b");
+});
+
 test("void event handler", () => {
   type M = {
     states: {
@@ -919,22 +952,10 @@ test("login machine", async () => {
         },
         // Rinse and repeat
         fetching: {
-          succeeded: ({ context }, user) => ({
-            state: "loggedIn",
-            context: {
-              ...context,
-              user,
-            },
-          }),
-          failed: ({ context, exec }, error) => {
+          succeeded: ({ next }, user) => next.loggedIn({ user }),
+          failed: ({ exec, next }, error) => {
             exec(() => console.error("Test message: Something bad happened!"));
-            return {
-              state: "error",
-              context: {
-                ...context,
-                error,
-              },
-            };
+            return next.error({ error });
           },
         },
         loggedIn: {

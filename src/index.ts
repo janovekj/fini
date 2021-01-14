@@ -32,6 +32,9 @@ const isFunction = (arg: any): arg is Function => typeof arg === "function";
 
 const isObject = (arg: any): arg is object => typeof arg === "object";
 
+const getKeys = <T extends object>(arg: T) =>
+  Object.keys(arg) as Array<keyof T>;
+
 interface EventMapType {
   [event: string]: any;
 }
@@ -162,6 +165,63 @@ type Transition<S extends StateMapType, Current extends keyof S> = Update<
   Current
 > | void;
 
+type ContextDiff<
+  States extends StateMapType,
+  StateA extends keyof States,
+  StateB extends keyof States
+> = Expand<
+  Override<
+    States[StateB]["context"],
+    {
+      [K in keyof States[StateA]["context"]]?: K extends keyof States[StateB]["context"]
+        ? States[StateB]["context"][K] | undefined
+        : never;
+    }
+  >
+>;
+
+type CreateUpdateObject<
+  M extends MachineType,
+  Current extends keyof States<M>,
+  Target extends keyof States<M>
+> = {} extends ContextDiff<States<M>, Current, Target>
+  ? (
+      context?: ContextDiff<States<M>, Current, Target>
+    ) => UpdateObject<States<M>>
+  : (
+      context: ContextDiff<States<M>, Current, Target>
+    ) => UpdateObject<States<M>>;
+
+type UpdateObjectCreatorMap<
+  M extends MachineType,
+  Current extends keyof States<M>
+> = {
+  [K in keyof States<M>]: CreateUpdateObject<M, Current, K>;
+};
+
+const createUpdateObjectCreatorMap = <
+  M extends MachineType,
+  Current extends keyof States<M>
+>(
+  schema: Schema<M>,
+  state: ReducerResultState<M>
+): UpdateObjectCreatorMap<M, Current> => {
+  return Object.assign(
+    {},
+    ...getKeys(schema).map((key) => {
+      return {
+        [key]: (context) => ({
+          state: key,
+          context: {
+            ...state.context,
+            ...context,
+          },
+        }),
+      };
+    })
+  );
+};
+
 interface CreateTransitionFnMachineObject<
   M extends MachineType,
   Current extends keyof States<M>
@@ -169,6 +229,7 @@ interface CreateTransitionFnMachineObject<
   state: Current;
   context: States<M>[Current]["context"];
   exec: (effect: EffectFunction<M>) => void;
+  next: UpdateObjectCreatorMap<M, Current>;
 }
 
 type CreateTranstionFn<
@@ -357,7 +418,7 @@ export const createMachine = <M extends Machine>(
         return { state, effects: [] };
       }
 
-      // @ts-ignore
+      // @ts-ignore - TODO: this should really be fixed
       const eventHandler = eventHandlerMap[event.type];
 
       if (!eventHandler) {
@@ -387,6 +448,8 @@ export const createMachine = <M extends Machine>(
               state: state.current,
               context: state.context,
               exec: execAndStoreEntity,
+              // @ts-ignore
+              next: createUpdateObjectCreatorMap(schema, state),
             },
             // @ts-ignore
             event?.payload
