@@ -50,37 +50,6 @@ test("object initial state and context", () => {
   is(result.current.context.prop, 123);
 });
 
-test("string shorthand state transition", () => {
-  type M = {
-    states: {
-      a: {
-        events: {
-          p: void;
-        };
-      };
-      b: {};
-    };
-  };
-
-  const { result } = renderHook(() =>
-    useMachine<M>(
-      {
-        a: {
-          p: "b",
-        },
-        b: {},
-      },
-      "a"
-    )
-  );
-
-  act(() => {
-    result.current.p();
-  });
-
-  is(result.current.current, "b");
-});
-
 test("object state transition", () => {
   type M = {
     states: {
@@ -110,39 +79,6 @@ test("object state transition", () => {
   });
 
   is(result.current.current, "b");
-});
-
-test("shorthand context update", () => {
-  type M = {
-    states: {
-      a: {
-        events: {
-          p: void;
-        };
-      };
-    };
-    context: { prop: string };
-  };
-
-  const { result } = renderHook(() =>
-    useMachine<M>(
-      {
-        a: {
-          p: { prop: "new value" },
-        },
-      },
-      { state: "a", context: { prop: "old value" } }
-    )
-  );
-
-  act(() => {
-    result.current.p();
-  });
-
-  is(result.current.context.prop, "new value");
-
-  // shouldn't change state
-  is(result.current.current, "a");
 });
 
 test("context and state update object", () => {
@@ -178,37 +114,6 @@ test("context and state update object", () => {
   is(result.current.context.prop, "new value");
 });
 
-test("string shorthand state transition by function", () => {
-  type M = {
-    states: {
-      a: {
-        events: {
-          p: void;
-        };
-      };
-      b: {};
-    };
-  };
-
-  const { result } = renderHook(() =>
-    useMachine<M>(
-      {
-        a: {
-          p: () => "b",
-        },
-        b: {},
-      },
-      "a"
-    )
-  );
-
-  act(() => {
-    result.current.p();
-  });
-
-  is(result.current.current, "b");
-});
-
 test("object state transition by function", () => {
   type M = {
     states: {
@@ -238,85 +143,9 @@ test("object state transition by function", () => {
   act(() => {
     result.current.p();
     console.log(result.current.p);
-
-    // result.current.p();
   });
 
   is(result.current.current, "b");
-});
-
-test("shorthand context update by object", () => {
-  type M = {
-    states: {
-      a: {
-        events: {
-          p: void;
-        };
-      };
-    };
-    context: { prop: string; anotherProp: string };
-  };
-
-  const { result } = renderHook(() =>
-    useMachine<M>(
-      {
-        a: {
-          p: { prop: "new value" },
-        },
-      },
-      { state: "a", context: { prop: "old value", anotherProp: "some value" } }
-    )
-  );
-
-  act(() => {
-    result.current.p();
-  });
-
-  // should only update the returned value
-  is(result.current.context.prop, "new value");
-
-  // the other value shouldn't have changed
-  is(result.current.context.anotherProp, "some value");
-
-  // shouldn't change state
-  is(result.current.current, "a");
-});
-
-test("shorthand context update by function", () => {
-  type M = {
-    states: {
-      a: {
-        events: {
-          p: void;
-        };
-      };
-    };
-    context: { prop: string; anotherProp: string };
-  };
-
-  const { result } = renderHook(() =>
-    useMachine<M>(
-      {
-        a: {
-          p: () => ({ prop: "new value" }),
-        },
-      },
-      { state: "a", context: { prop: "old value", anotherProp: "some value" } }
-    )
-  );
-
-  act(() => {
-    result.current.p();
-  });
-
-  // should only update the returned value
-  is(result.current.context.prop, "new value");
-
-  // the other value shouldn't have changed
-  is(result.current.context.anotherProp, "some value");
-
-  // shouldn't change state
-  is(result.current.current, "a");
 });
 
 test("context and state update object by function", () => {
@@ -467,7 +296,9 @@ test("event handler with side-effect", () => {
               value = "new value";
               return () => void (value = "final value");
             }),
-          next: "b",
+          next: {
+            state: "b",
+          },
         },
         b: {},
       },
@@ -516,7 +347,9 @@ test("entry effect on initial state", () => {
               hasCleanedUp = true;
             };
           },
-          stop: "b",
+          stop: {
+            state: "b",
+          },
         },
         b: {},
       },
@@ -581,7 +414,9 @@ test("exit and entry effect", async () => {
             type(machine.dispatch.next, "function");
             return () => effects.push("entry cleanup");
           },
-          previous: "a",
+          previous: {
+            state: "a",
+          },
         },
       },
       "a"
@@ -682,12 +517,23 @@ test("simple counter example", () => {
           increment: ({ context: { count } }) =>
             count < 7
               ? {
-                  count: count + 1,
+                  state: "counting",
+                  context: {
+                    count: count + 1,
+                  },
                 }
-              : "maxedOut",
+              : {
+                  state: "maxedOut",
+                  context: {
+                    count,
+                  },
+                },
           decrement: ({ context }) => ({
-            ...context,
-            count: context.count - 1,
+            state: "counting",
+            context: {
+              ...context,
+              count: context.count - 1,
+            },
           }),
         },
         maxedOut: {
@@ -959,7 +805,7 @@ test("login machine", async () => {
           },
         },
         loggedIn: {
-          logout: "initial",
+          logout: { state: "initial" },
         },
         error: {
           retry: ({ context, exec }) => {
@@ -968,7 +814,10 @@ test("login machine", async () => {
                 .then((user) => dispatch.succeeded(user))
                 .catch((error) => dispatch.failed(error));
             });
-            return "fetching";
+            return {
+              state: "fetching",
+              context,
+            };
           },
         },
       },
@@ -1048,13 +897,19 @@ test("counter example with enter and exit effects", () => {
             console.log(`Count is ${context.count}`);
             dispatch.increment();
           },
-          increment: ({ context }) => ({ count: context.count + 1 }),
-          pause: "paused",
-          stop: "stopped",
+          increment: ({ context }) => ({
+            state: "counting",
+            context: { count: context.count + 1 },
+          }),
+          pause: ({ context }) => ({ state: "paused", context }),
+          stop: ({ context }) => ({ state: "stopped", context }),
           $exit: ({ nextState }) => console.log(`Heading off to ${nextState}`),
         },
         paused: {
-          resume: "counting",
+          resume: ({ context }) => ({
+            state: "counting",
+            context: { count: context.count },
+          }),
         },
         stopped: {},
       },
@@ -1133,7 +988,7 @@ test("don't dispatch after unmount", async () => {
               };
             });
           },
-          e2: () => "s2",
+          e2: () => ({ state: "s2" }),
         },
         s2: {
           $entry: () => {

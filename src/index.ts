@@ -13,11 +13,6 @@ const dev = {
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;
 
-type Without<T, U> = { [P in Exclude<keyof T, keyof U>]?: never };
-type XOR<T, U> = T | U extends object
-  ? (Without<T, U> & U) | (Without<U, T> & T)
-  : T | U;
-
 type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
   k: infer I
 ) => void
@@ -83,21 +78,6 @@ interface StateMapDefinition {
   [state: string]: Partial<State>;
 }
 
-type CompatibleContextStates<
-  S extends StateMapType,
-  Current extends keyof S
-> = {
-  [K in keyof S]: S[Current]["context"] extends S[K]["context"] ? K : never;
-}[keyof S];
-
-/** Transition result where the state is the same,
- * and doesn't have to be explicitly defined.
- * The context returned in this update can be partial,
- * and will be spread onto the existing context */
-type ContextUpdate<S extends StateMapType, Current extends keyof S> = Partial<
-  S[Current]["context"]
->;
-
 /** Object describing the next state (and context, if required) for a transition */
 type UpdateObject<S extends StateMapType> = {
   [K in keyof S]: {
@@ -110,9 +90,7 @@ type UpdateObject<S extends StateMapType> = {
 }[keyof S];
 
 /** The resulting state after a transition */
-type Update<S extends StateMapType, Current extends keyof S> =
-  | CompatibleContextStates<S, Current>
-  | XOR<ContextUpdate<S, Current>, UpdateObject<S>>;
+type Update<S extends StateMapType> = UpdateObject<S>;
 
 type DispatchEvent<P> = [void] extends [P] ? () => void : (payload: P) => void;
 
@@ -160,10 +138,7 @@ interface EffectFunction<M extends MachineType> {
 }
 
 /** The result of a transition */
-type Transition<S extends StateMapType, Current extends keyof S> = Update<
-  S,
-  Current
-> | void;
+type Transition<S extends StateMapType> = Update<S> | void;
 
 type ContextDiff<
   States extends StateMapType,
@@ -239,18 +214,18 @@ type CreateTranstionFn<
 > = [void] extends [P]
   ? (
       machine: Expand<CreateTransitionFnMachineObject<M, Current>>
-    ) => Transition<States<M>, Current>
+    ) => Transition<States<M>>
   : (
       machine: Expand<CreateTransitionFnMachineObject<M, Current>>,
       payload: P
-    ) => Transition<States<M>, Current>;
+    ) => Transition<States<M>>;
 
 /** Reacts to an event and describes the next state and any side-effects */
 type EventHandler<
   M extends MachineType,
   Current extends keyof States<M>,
   P extends any
-> = Transition<States<M>, Current> | CreateTranstionFn<M, Current, P>;
+> = Transition<States<M>> | CreateTranstionFn<M, Current, P>;
 
 interface StateEntryEffect<
   M extends MachineType,
@@ -464,10 +439,8 @@ export const createMachine = <M extends Machine>(
 
       const getNextState = () => {
         if (isObject(update)) {
-          //@ts-ignore
-          return "state" in update ? update.state : state.current;
-        } else if (typeof update === "string" && update in schema) {
-          return update;
+          // @ts-ignore
+          return update.state;
         } else if (update === undefined) {
           return state.current;
         } else {
@@ -477,15 +450,8 @@ export const createMachine = <M extends Machine>(
 
       const getNextContext = () => {
         if (isObject(update)) {
-          return "state" in update
-            ? // @ts-ignore
-              update.context
-            : {
-                ...state.context,
-                ...update,
-              };
-        } else if (typeof update === "string" && update in schema) {
-          return state.context;
+          // @ts-ignore
+          return update.context;
         } else if (update === undefined) {
           return state.context;
         } else {
