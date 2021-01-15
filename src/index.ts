@@ -155,9 +155,9 @@ const createDispatcher = <M extends Machine>(
 };
 
 interface CleanupFunction extends VoidFunction {}
-type EffectFunction<M extends MachineType> = (
-  dispatcher: Dispatcher<M>
-) => void | CleanupFunction;
+interface EffectFunction<M extends MachineType> {
+  (dispatcher: Dispatcher<M>): void | CleanupFunction;
+}
 
 /** The result of a transition */
 type Transition<S extends StateMapType, Current extends keyof S> = Update<
@@ -252,27 +252,31 @@ type EventHandler<
   P extends any
 > = Transition<States<M>, Current> | CreateTranstionFn<M, Current, P>;
 
-type StateEntryEffect<
+interface StateEntryEffect<
   M extends MachineType,
   Current extends keyof States<M>
-> = (machine: {
-  state: Current;
-  previousState?: keyof States<M>;
-  context: States<M>[Current]["context"];
-  dispatch: Dispatcher<M>;
-}) => void;
-
-type StateExitEffect<M extends MachineType> = (
-  machine: {
-    [State in keyof States<M>]: {
-      nextState: State;
-      context: States<M>[State]["context"];
-    };
-  }[keyof States<M>] & {
-    state: keyof States<M>;
+> {
+  (machine: {
+    state: Current;
+    previousState?: keyof States<M>;
+    context: States<M>[Current]["context"];
     dispatch: Dispatcher<M>;
-  }
-) => void;
+  }): void;
+}
+
+interface StateExitEffect<M extends MachineType> {
+  (
+    machine: {
+      [State in keyof States<M>]: {
+        nextState: State;
+        context: States<M>[State]["context"];
+      };
+    }[keyof States<M>] & {
+      state: keyof States<M>;
+      dispatch: Dispatcher<M>;
+    }
+  ): void;
+}
 
 type EventHandlerMap<M extends MachineType, K extends keyof States<M>> = {
   [E in keyof States<M>[K]["events"]]: EventHandler<
