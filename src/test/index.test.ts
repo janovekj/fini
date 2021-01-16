@@ -50,138 +50,7 @@ test("object initial state and context", () => {
   is(result.current.context.prop, 123);
 });
 
-test("object state transition", () => {
-  type M = {
-    states: {
-      a: {
-        events: {
-          p: void;
-        };
-      };
-      b: {};
-    };
-  };
-
-  const { result } = renderHook(() =>
-    useMachine<M>(
-      {
-        a: {
-          p: { state: "b" },
-        },
-        b: {},
-      },
-      "a"
-    )
-  );
-
-  act(() => {
-    result.current.p();
-  });
-
-  is(result.current.current, "b");
-});
-
 test("context and state update object", () => {
-  type M = {
-    states: {
-      a: {
-        events: {
-          p: void;
-        };
-      };
-      b: {};
-    };
-    context: { prop: string };
-  };
-
-  const { result } = renderHook(() =>
-    useMachine<M>(
-      {
-        a: {
-          p: { state: "b", context: { prop: "new value" } },
-        },
-        b: {},
-      },
-      { state: "a", context: { prop: "old value" } }
-    )
-  );
-
-  act(() => {
-    result.current.p();
-  });
-
-  is(result.current.current, "b");
-  is(result.current.context.prop, "new value");
-});
-
-test("object state transition by function", () => {
-  type M = {
-    states: {
-      a: {
-        events: {
-          p: void;
-        };
-      };
-      b: {};
-    };
-  };
-
-  const { result } = renderHook(() =>
-    useMachine<M>(
-      {
-        a: {
-          p: () => ({
-            state: "b",
-          }),
-        },
-        b: {},
-      },
-      "a"
-    )
-  );
-
-  act(() => {
-    result.current.p();
-    console.log(result.current.p);
-  });
-
-  is(result.current.current, "b");
-});
-
-test("context and state update object by function", () => {
-  type M = {
-    states: {
-      a: {
-        events: {
-          p: void;
-        };
-      };
-      b: {};
-    };
-    context: { prop: string };
-  };
-
-  const { result } = renderHook(() =>
-    useMachine<M>(
-      {
-        a: {
-          p: () => ({ state: "b", context: { prop: "new value" } }),
-        },
-        b: {},
-      },
-      { state: "a", context: { prop: "old value" } }
-    )
-  );
-
-  act(() => {
-    result.current.p();
-  });
-
-  is(result.current.context.prop, "new value");
-  is(result.current.current, "b");
-});
-
-test("update by update object creator", () => {
   type M = {
     states: {
       a: {
@@ -210,8 +79,8 @@ test("update by update object creator", () => {
     result.current.p();
   });
 
-  is(result.current.context.prop, "new value");
   is(result.current.current, "b");
+  is(result.current.context.prop, "new value");
 });
 
 test("void event handler", () => {
@@ -257,7 +126,7 @@ test("dispatch event with payload", () => {
     useMachine<M>(
       {
         a: {
-          p: (_, payload) => ({ state: "b", context: { prop: payload } }),
+          p: ({ next }, payload) => next.b({ prop: payload }),
         },
         b: {},
       },
@@ -296,9 +165,7 @@ test("event handler with side-effect", () => {
               value = "new value";
               return () => void (value = "final value");
             }),
-          next: {
-            state: "b",
-          },
+          next: ({ next }) => next.b(),
         },
         b: {},
       },
@@ -347,9 +214,7 @@ test("entry effect on initial state", () => {
               hasCleanedUp = true;
             };
           },
-          stop: {
-            state: "b",
-          },
+          stop: ({ next }) => next.b(),
         },
         b: {},
       },
@@ -397,12 +262,10 @@ test("exit and entry effect", async () => {
 
             return () => effects.push("exit cleanup");
           },
-          next: {
-            state: "b",
-            context: {
+          next: ({ next }) =>
+            next.b({
               prop: "test",
-            },
-          },
+            }),
         },
         b: {
           $entry: (machine) => {
@@ -414,9 +277,7 @@ test("exit and entry effect", async () => {
             type(machine.dispatch.next, "function");
             return () => effects.push("entry cleanup");
           },
-          previous: {
-            state: "a",
-          },
+          previous: ({ next }) => next.a(),
         },
       },
       "a"
@@ -514,35 +375,17 @@ test("simple counter example", () => {
     useMachine<CounterMachine>(
       {
         counting: {
-          increment: ({ context: { count } }) =>
+          increment: ({ next, context: { count } }) =>
             count < 7
-              ? {
-                  state: "counting",
-                  context: {
-                    count: count + 1,
-                  },
-                }
-              : {
-                  state: "maxedOut",
-                  context: {
-                    count,
-                  },
-                },
-          decrement: ({ context }) => ({
-            state: "counting",
-            context: {
-              ...context,
-              count: context.count - 1,
-            },
-          }),
+              ? next.counting({
+                  count: count + 1,
+                })
+              : next.maxedOut(),
+          decrement: ({ next, context }) =>
+            next.counting({ count: context.count - 1 }),
         },
         maxedOut: {
-          reset: {
-            state: "counting",
-            context: {
-              count: 0,
-            },
-          },
+          reset: ({ next }) => next.counting({ count: 0 }),
         },
       },
       { state: "counting", context: { count: 0 } }
@@ -776,7 +619,7 @@ test("login machine", async () => {
            *    (and even dispatch new events!)
            * 2. the event payload
            */
-          login: ({ exec }, { email, password }) => {
+          login: ({ next, exec }, { email, password }) => {
             // Prepare the login function which will be executed upon state change
             exec((dispatch) => {
               login({ email, password })
@@ -785,15 +628,12 @@ test("login machine", async () => {
             });
 
             // Return the new state, with the new context
-            return {
-              state: "fetching",
-              context: {
-                params: {
-                  email,
-                  password,
-                },
+            return next.fetching({
+              params: {
+                email,
+                password,
               },
-            };
+            });
           },
         },
         // Rinse and repeat
@@ -805,19 +645,16 @@ test("login machine", async () => {
           },
         },
         loggedIn: {
-          logout: { state: "initial" },
+          logout: ({ next }) => next.initial(),
         },
         error: {
-          retry: ({ context, exec }) => {
+          retry: ({ next, context, exec }) => {
             exec((dispatch) => {
               login(context.params)
                 .then((user) => dispatch.succeeded(user))
                 .catch((error) => dispatch.failed(error));
             });
-            return {
-              state: "fetching",
-              context,
-            };
+            return next.fetching();
           },
         },
       },
@@ -884,12 +721,7 @@ test("counter example with enter and exit effects", () => {
     useMachine<CounterMachine>(
       {
         idle: {
-          start: {
-            state: "counting",
-            context: {
-              count: 0,
-            },
-          },
+          start: ({ next }) => next.counting(),
         },
         counting: {
           $entry: ({ state, previousState, context, dispatch }) => {
@@ -897,19 +729,14 @@ test("counter example with enter and exit effects", () => {
             console.log(`Count is ${context.count}`);
             dispatch.increment();
           },
-          increment: ({ context }) => ({
-            state: "counting",
-            context: { count: context.count + 1 },
-          }),
-          pause: ({ context }) => ({ state: "paused", context }),
-          stop: ({ context }) => ({ state: "stopped", context }),
+          increment: ({ next, context }) =>
+            next.counting({ count: context.count + 1 }),
+          pause: ({ next }) => next.paused(),
+          stop: ({ next }) => next.stopped(),
           $exit: ({ nextState }) => console.log(`Heading off to ${nextState}`),
         },
         paused: {
-          resume: ({ context }) => ({
-            state: "counting",
-            context: { count: context.count },
-          }),
+          resume: ({ next }) => next.counting(),
         },
         stopped: {},
       },

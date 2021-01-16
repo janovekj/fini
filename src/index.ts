@@ -23,8 +23,6 @@ type Override<T1, T2> = Omit<T1, keyof T2> & T2;
 
 type TypeOrEmpty<T> = T extends {} ? T : {};
 
-const isFunction = (arg: any): arg is Function => typeof arg === "function";
-
 const isObject = (arg: any): arg is object => typeof arg === "object";
 
 const getKeys = <T extends object>(arg: T) =>
@@ -225,7 +223,7 @@ type EventHandler<
   M extends MachineType,
   Current extends keyof States<M>,
   P extends any
-> = Transition<States<M>> | CreateTranstionFn<M, Current, P>;
+> = CreateTranstionFn<M, Current, P>;
 
 interface StateEntryEffect<
   M extends MachineType,
@@ -421,19 +419,17 @@ export const createMachine = <M extends Machine>(
         return effectEntity;
       };
 
-      const transition = isFunction(eventHandler)
-        ? eventHandler(
-            {
-              state: state.current,
-              context: state.context,
-              exec: execAndStoreEntity,
-              // @ts-ignore
-              next: createUpdateObjectCreatorMap(schema, state),
-            },
-            // @ts-ignore
-            event?.payload
-          )
-        : eventHandler;
+      const transition = eventHandler(
+        {
+          state: state.current,
+          context: state.context,
+          exec: execAndStoreEntity,
+          // @ts-ignore
+          next: createUpdateObjectCreatorMap(schema, state),
+        },
+        // @ts-ignore
+        event?.payload
+      );
 
       const update = transition;
 
