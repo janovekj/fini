@@ -312,7 +312,7 @@ type InitialState<M extends Machine> = UpdateObject<
 
 interface CreateInitialState<M extends Machine> {
   (
-    states: {
+    initial: {
       [K in keyof States<MachineTypeWithDefaults<M>>]: {} extends States<
         MachineTypeWithDefaults<M>
       >[K]["context"]
