@@ -315,7 +315,7 @@ test("passing machine from createMachine into useMachine", () => {
 
   const machine = createMachine<M>({
     a: {
-      p: (_, payload) => ({ state: "b", context: { prop: payload } }),
+      p: ({ next }, payload) => next.b({ prop: payload }),
     },
     b: {},
   });
@@ -452,51 +452,39 @@ test("async thing", async () => {
     useMachine<FetcherMachine>(
       {
         initial: {
-          fetch: ({ exec }, id) => {
+          fetch: ({ next, exec }, id) => {
             exec(
               (dispatch) =>
                 void fetchUser(id).then((user) => {
                   dispatch.succeeded(user);
                 })
             );
-            return {
-              state: "fetching",
-              context: {
-                params: {
-                  id,
-                },
+            return next.fetching({
+              params: {
+                id,
               },
-            };
+            });
           },
         },
         fetching: {
-          succeeded: ({ context }, user) => ({
-            state: "success",
-            context: {
-              ...context,
+          succeeded: ({ next }, user) =>
+            next.success({
               user,
-            },
-          }),
-          failed: (context) => ({
-            state: "error",
-            context: {
-              ...context,
+            }),
+          failed: ({ next }) =>
+            next.error({
               error: "failed big time",
-            },
-          }),
+            }),
         },
         success: {
-          refetch: ({ context, exec }) => {
+          refetch: ({ next, context, exec }) => {
             exec(
               (dispatch) =>
                 void fetchUser(context.params.id).then((user) => {
                   dispatch.succeeded(user);
                 })
             );
-            return {
-              state: "fetching",
-              context,
-            };
+            return next.fetching();
           },
         },
         error: {},
@@ -795,7 +783,7 @@ test("don't dispatch after unmount", async () => {
               };
             });
           },
-          e2: () => ({ state: "s2" }),
+          e2: ({ next }) => next.s2(),
         },
         s2: {
           $entry: () => {
