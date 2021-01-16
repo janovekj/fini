@@ -287,10 +287,6 @@ type MachineResult<M extends Machine> = Expand<
   }[keyof States<MachineTypeWithDefaults<M>>]
 >;
 
-type OptionalContextStates<S extends StateMapType> = {
-  [K in keyof S]: {} extends S[K]["context"] ? K : never;
-}[keyof S];
-
 type ReducerResultState<M extends MachineType> = {
   [K in keyof States<M>]: {
     current: K;
@@ -310,43 +306,42 @@ type Schema<M extends Machine> = {
   >;
 };
 
-type InitialState<M extends Machine> =
-  | OptionalContextStates<States<MachineTypeWithDefaults<M>>>
-  | UpdateObject<States<MachineTypeWithDefaults<M>>>;
+type InitialState<M extends Machine> = UpdateObject<
+  States<MachineTypeWithDefaults<M>>
+>;
+
+interface CreateInitialState<M extends Machine> {
+  (
+    states: {
+      [K in keyof States<MachineTypeWithDefaults<M>>]: {} extends States<
+        MachineTypeWithDefaults<M>
+      >[K]["context"]
+        ? () => InitialState<M>
+        : (
+            context: States<MachineTypeWithDefaults<M>>[K]["context"]
+          ) => InitialState<M>;
+    }
+  ): InitialState<M>;
+}
 
 const parseInitialState = <M extends Machine>(
   schema: Schema<M>,
   initialState: InitialState<M>
 ): ReducerResultState<MachineTypeWithDefaults<M>> => {
-  if (typeof initialState === "string") {
-    if (initialState in schema) {
+  if (initialState.state in schema) {
+    return {
+      current: initialState.state,
       // @ts-ignore
-      return {
-        current: initialState,
-        context: {},
-      };
-    } else {
-      dev.error(
-        `State '${initialState}' does not exist in schema: ${JSON.stringify(
-          schema
-        )}`
-      );
-    }
-  } else if (isObject(initialState)) {
-    if (initialState.state in schema) {
-      return {
-        current: initialState.state,
-        // @ts-ignore
-        context: initialState.context ?? {},
-      };
-    } else {
-      dev.error(
-        `State '${
-          initialState.state
-        }' does not exist in schema: ${JSON.stringify(schema)}`
-      );
-    }
+      context: initialState.context ?? {},
+    };
+  } else {
+    dev.error(
+      `State '${initialState.state}' does not exist in schema: ${JSON.stringify(
+        schema
+      )}`
+    );
   }
+
   // @ts-ignore
   return;
 };
@@ -523,17 +518,17 @@ export const createMachine = <M extends Machine>(
 
 export function useMachine<M extends Machine>(
   schema: Schema<M>,
-  initialState: InitialState<M>
+  initialState: CreateInitialState<M>
 ): MachineResult<M>;
 
 export function useMachine<M extends Machine>(
   createMachineResult: CreateMachineResult<M>,
-  initialState: InitialState<M>
+  initialState: CreateInitialState<M>
 ): MachineResult<M>;
 
 export function useMachine<M extends Machine>(
   machineDefinition: MachineDefinition<M>,
-  initialState: InitialState<M>
+  initialState: CreateInitialState<M>
 ): MachineResult<M> {
   type MachineWithDefaults = MachineTypeWithDefaults<M>;
   type StateMap = States<MachineWithDefaults>;
@@ -551,8 +546,19 @@ export function useMachine<M extends Machine>(
     ? machineDefinition.createReducer(dispatcher)
     : createMachine(schema).createReducer(dispatcher);
 
+  const states: CreateInitialState<MachineWithDefaults> = Object.assign(
+    {},
+    ...getKeys(schema).map((key) => ({
+      [key]: (context) => ({
+        state: key,
+        context,
+      }),
+    }))
+  );
+
   const [reducerState, dispatch] = useEffectReducer(reducer, (exec) => {
-    const initial = parseInitialState(schema, initialState);
+    // @ts-ignore
+    const initial = parseInitialState(schema, initialState(states));
 
     const initialStateNode = schema[initial.current];
     const effects: EffectEntity<

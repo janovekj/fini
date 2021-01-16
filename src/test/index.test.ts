@@ -9,27 +9,7 @@ test.before(() => {
   global.__DEV__ = true;
 });
 
-test("string shorthand initial state", () => {
-  type M = {
-    states: {
-      a: {};
-    };
-  };
-
-  const { result } = renderHook(() =>
-    useMachine<M>(
-      {
-        a: {},
-      },
-      "a"
-    )
-  );
-  is(result.current.current, "a");
-  // context should be defined, even if doesn't have any initial values
-  equal(result.current.context, {});
-});
-
-test("object initial state and context", () => {
+test("initial state with context", () => {
   type M = {
     states: {
       a: {};
@@ -43,7 +23,7 @@ test("object initial state and context", () => {
       {
         a: {},
       },
-      { state: "a", context: { prop: 123 } }
+      ({ a }) => a({ prop: 123 })
     )
   );
   is(result.current.current, "a");
@@ -71,7 +51,7 @@ test("context and state update object", () => {
         },
         b: {},
       },
-      { state: "a", context: { prop: "old value" } }
+      ({ a }) => a({ prop: "old value" })
     )
   );
 
@@ -101,7 +81,7 @@ test("void event handler", () => {
           event1: () => void 0,
         },
       },
-      "state1"
+      ({ state1 }) => state1()
     )
   );
   act(() => result.current.event1());
@@ -130,7 +110,7 @@ test("dispatch event with payload", () => {
         },
         b: {},
       },
-      { state: "a", context: { prop: "old value" } }
+      ({ a }) => a({ prop: "old value" })
     )
   );
 
@@ -169,7 +149,7 @@ test("event handler with side-effect", () => {
         },
         b: {},
       },
-      "a"
+      ({ a }) => a()
     )
   );
 
@@ -218,7 +198,7 @@ test("entry effect on initial state", () => {
         },
         b: {},
       },
-      "a"
+      ({ a }) => a()
     )
   );
 
@@ -280,7 +260,7 @@ test("exit and entry effect", async () => {
           previous: ({ next }) => next.a(),
         },
       },
-      "a"
+      ({ a }) => a()
     )
   );
 
@@ -341,7 +321,7 @@ test("passing machine from createMachine into useMachine", () => {
   });
 
   const { result } = renderHook(() =>
-    useMachine(machine, { state: "a", context: { prop: "old value" } })
+    useMachine(machine, ({ a }) => a({ prop: "old value" }))
   );
 
   act(() => {
@@ -388,7 +368,7 @@ test("simple counter example", () => {
           reset: ({ next }) => next.counting({ count: 0 }),
         },
       },
-      { state: "counting", context: { count: 0 } }
+      ({ counting }) => counting({ count: 0 })
     )
   );
 
@@ -521,7 +501,7 @@ test("async thing", async () => {
         },
         error: {},
       },
-      "initial"
+      ({ initial }) => initial()
     )
   );
 
@@ -658,7 +638,7 @@ test("login machine", async () => {
           },
         },
       },
-      "initial"
+      ({ initial }) => initial()
     )
   );
 
@@ -740,7 +720,7 @@ test("counter example with enter and exit effects", () => {
         },
         stopped: {},
       },
-      { state: "idle", context: { count: 0 } }
+      ({ idle }) => idle({ count: 0 })
     )
   );
 
@@ -772,7 +752,7 @@ test("dispatch event that isnt handled", () => {
         },
         s2: {},
       },
-      "s2"
+      ({ s2 }) => s2()
     )
   );
 
@@ -823,7 +803,7 @@ test("don't dispatch after unmount", async () => {
           },
         },
       },
-      "s1"
+      ({ s1 }) => s1()
     )
   );
 
