@@ -66,14 +66,9 @@ type CounterMachine = {
 const counterMachine = useMachine(
   {
     idle: {
-      start: ({ context }) => ({
-        state: "counting",
-        context: {
-          ...context,
-          count: 0,
-        },
-      }),
+      start: ({ next, context }) => next.counting({ count: 0 }),
     },
+    // [the `counting` state implementation]
   },
   { state: "idle", context: { maxCount: 100 } }
 );

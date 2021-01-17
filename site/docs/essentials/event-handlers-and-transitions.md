@@ -6,32 +6,18 @@ State machines are all about responding to events and transitioning to new state
 
 ## Changing states
 
-There's different ways to transition between states, so let's get a quick overview. The next example shows all the possible ways of expressing a transition from `state1` to `state2`.
+Transitioning to a new state is simple. Showing is better than telling, so let's look at an example:
 
 ```tsx
 useMachine({
   state1: {
-    // String shorthand
-    event1: "state2",
-
-    // Update object
-    event2: {
-      state: "state2"
-    }
-
-    // String shorthand returned from event handler function
-    event3: () => "state2",
-
-    // Update object returned from event handler function
-    event4: () => ({
-      state: "state2"
-    })
+    event1: ({ next }) => next.state2(),
   },
-  state2: {}
-})
+  state2: {},
+});
 ```
 
-The first two methods are fine for transitions where no logic is involved, but for everything else, you'll probably want to use a function.
+That's all there's to it! The `next` object that is provided to our event handler function, has functions attached to it that will help us in creating state and context updates. It's important to note that this function only _creates_ a new state, it does not actually update the state of our machine. This means that we must return the result for anything to actually happen.
 
 :::note
 The event handler function should be [pure](https://en.wikipedia.org/wiki/Pure_function). If you need to perform side-effects, we'll talk about that in just a minute.
@@ -39,56 +25,21 @@ The event handler function should be [pure](https://en.wikipedia.org/wiki/Pure_f
 
 ## Updating context
 
-Handling an event will often include some changes to the context. Fini has a couple of ways to achieve this as well.
+In addition to transitioning between states, an event may also update the [context](schema-definition.md#context):
 
 ```tsx
 useMachine({
   state1: {
-    // Context update object
-    // Current state stays the same
-    event1: {
-      contextProperty: "some value",
-    },
-
-    // Update object
-    event2: {
-      state: "state1",
-      context: {
-        contextProperty: "some value",
-      },
-    },
-
-    // Context update object returned from event handler function
-    event3: () => ({
-      contextProperty: "some value",
-    }),
-
-    // Update object returned from event handler function
-    event4: () => ({
-      state: "state1",
-      context: {
-        contextProperty: "some value",
-      },
-    }),
+    event1: ({ next }) =>
+      // Will create a context update while staying in the same state
+      next.state1({
+        someContextProperty: "some value",
+      }),
   },
 });
 ```
 
-This is pretty similar to how changing state works. It's worth noting that `event1` and `event3` just returns the new context directly, and since the object doesn't include a `state` property, Fini will assume that this is a context update.
-
-All event handler functions also receive the current context and state name as the first parameter:
-
-```tsx
-useMachine({
-  counting: {
-    increment: ({ state, context }) => ({
-      count: context.count + 1,
-    }),
-  },
-});
-```
-
-Updating the context works the same way you normally update state in reducer functions: you have to return the entire context object, not just the properties you're updating. If the state you're transitioning to has its own context properties, you must also make sure that the returned context is compatible with this new shape.
+If the next state you're transitioning to requires a different set of context properties, Fini will tell if something is missing when creating the update.
 
 It's also completely fine to not return nothing at all. This is often the case if you just want to run some side-effects, which we'll talk about later! If nothing is returned, nothing will be updated.
 
@@ -161,6 +112,8 @@ useMachine({
   },
 });
 ```
+
+From your side-effect functions, you can also return a cleanup function, which will run when the current state is left, or when the React component is unmounted (similar to [how `useEffect` works](7caffc79111ccf19cb50dad1e93c92f2437b89b0))
 
 ## State life cycle effects
 
