@@ -113,7 +113,7 @@ useMachine({
 });
 ```
 
-From your side-effect functions, you can also return a cleanup function, which will run when the current state is left, or when the React component is unmounted (similar to [how `useEffect` works](7caffc79111ccf19cb50dad1e93c92f2437b89b0))
+From your side-effect functions, you can also return a cleanup function, which will run when the current state is left, or when the React component is unmounted (similar to [how `useEffect` works](https://reactjs.org/docs/hooks-effect.html#example-using-hooks-1))
 
 ## State life cycle effects
 
