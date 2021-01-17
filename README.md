@@ -66,16 +66,11 @@ type CounterMachine = {
 const App = () => {
   const machine = useMachine<CounterMachine>(
     {
+      // Object that describes the `idle` state and its supported events
       idle: {
         // Event handler function which transitions into
         // the `counting` state, and sets the current count to 0
-        start: ({ context }) => ({
-          state: "counting",
-          context: {
-            ...context,
-            count: 0,
-          },
-        }),
+        start: ({ next }) => next.counting({ count: 0 }),
         log: ({ exec }) => {
           // execute a side-effect
           exec(() => console.log("Haven't started counting yet"));
@@ -84,22 +79,24 @@ const App = () => {
       counting: {
         // Updates the context by incrementing the current count,
         // if max count hasn't already been reached
-        increment: ({ context }) => ({
-          count:
-            context.count === context.maxCount
-              ? context.count
-              : context.count + 1,
-        }),
-        set: (_, count) => ({
-          count,
-        }),
+        increment: ({ next, context }) =>
+          next.counting({
+            count:
+              context.count === context.maxCount
+                ? context.count
+                : context.count + 1,
+          }),
+        set: ({ next }, count) =>
+          next.counting({
+            count,
+          }),
         log: ({ exec, context }) => {
           exec(() => console.log(`Current count is ${context.count}`));
         },
       },
     },
-    // The initial state and context
-    { state: "idle", context: { maxCount: 120 } }
+    // Set the initial state and context
+    (initial) => initial.idle({ maxCount: 120 })
   );
 
   return (
