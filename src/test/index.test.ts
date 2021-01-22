@@ -185,7 +185,7 @@ test("entry effect on initial state", () => {
     useMachine<M>(
       {
         a: {
-          $entry: (machine: any) => {
+          $entry: (machine) => {
             is(machine.previousState, undefined);
             is(machine.state, "a");
             equal(machine.context, {});
