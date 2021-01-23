@@ -47,7 +47,7 @@ test("context and state update object", () => {
     useMachine<M>(
       {
         a: {
-          p: ({ next }) => next.b({ prop: "new value" }),
+          p: ({ update }) => update.b({ prop: "new value" }),
         },
         b: {},
       },
@@ -106,7 +106,7 @@ test("dispatch event with payload", () => {
     useMachine<M>(
       {
         a: {
-          p: ({ next }, payload) => next.b({ prop: payload }),
+          p: ({ update }, payload) => update.b({ prop: payload }),
         },
         b: {},
       },
@@ -140,12 +140,12 @@ test("event handler with side-effect", () => {
     useMachine<M>(
       {
         a: {
-          p: ({ exec }) =>
-            void exec(() => {
+          p: ({ update }) =>
+            update(() => {
               value = "new value";
               return () => void (value = "final value");
             }),
-          next: ({ next }) => next.b(),
+          next: ({ update }) => update.b(),
         },
         b: {},
       },
@@ -194,7 +194,7 @@ test("entry effect on initial state", () => {
               hasCleanedUp = true;
             };
           },
-          stop: ({ next }) => next.b(),
+          stop: ({ update }) => update.b(),
         },
         b: {},
       },
@@ -242,8 +242,8 @@ test("exit and entry effect", async () => {
 
             return () => effects.push("exit cleanup");
           },
-          next: ({ next }) =>
-            next.b({
+          next: ({ update }) =>
+            update.b({
               prop: "test",
             }),
         },
@@ -257,7 +257,7 @@ test("exit and entry effect", async () => {
             type(machine.dispatch.next, "function");
             return () => effects.push("entry cleanup");
           },
-          previous: ({ next }) => next.a(),
+          previous: ({ update }) => update.a(),
         },
       },
       ({ a }) => a()
@@ -315,7 +315,7 @@ test("passing machine from createMachine into useMachine", () => {
 
   const machine = createMachine<M>({
     a: {
-      p: ({ next }, payload) => next.b({ prop: payload }),
+      p: ({ update }, payload) => update.b({ prop: payload }),
     },
     b: {},
   });
@@ -355,17 +355,17 @@ test("simple counter example", () => {
     useMachine<CounterMachine>(
       {
         counting: {
-          increment: ({ next, context: { count } }) =>
+          increment: ({ update, context: { count } }) =>
             count < 7
-              ? next.counting({
+              ? update.counting({
                   count: count + 1,
                 })
-              : next.maxedOut(),
-          decrement: ({ next, context }) =>
-            next.counting({ count: context.count - 1 }),
+              : update.maxedOut(),
+          decrement: ({ update, context }) =>
+            update.counting({ count: context.count - 1 }),
         },
         maxedOut: {
-          reset: ({ next }) => next.counting({ count: 0 }),
+          reset: ({ update }) => update.counting({ count: 0 }),
         },
       },
       ({ counting }) => counting({ count: 0 })
@@ -452,40 +452,37 @@ test("async thing", async () => {
     useMachine<FetcherMachine>(
       {
         initial: {
-          fetch: ({ next, exec }, id) => {
-            exec(
+          fetch: ({ update }, id) =>
+            update.fetching(
+              {
+                params: {
+                  id,
+                },
+              },
               (dispatch) =>
                 void fetchUser(id).then((user) => {
                   dispatch.succeeded(user);
                 })
-            );
-            return next.fetching({
-              params: {
-                id,
-              },
-            });
-          },
+            ),
         },
         fetching: {
-          succeeded: ({ next }, user) =>
-            next.success({
+          succeeded: ({ update }, user) =>
+            update.success({
               user,
             }),
-          failed: ({ next }) =>
-            next.error({
+          failed: ({ update }) =>
+            update.error({
               error: "failed big time",
             }),
         },
         success: {
-          refetch: ({ next, context, exec }) => {
-            exec(
+          refetch: ({ update, context }) =>
+            update.fetching(
               (dispatch) =>
                 void fetchUser(context.params.id).then((user) => {
                   dispatch.succeeded(user);
                 })
-            );
-            return next.fetching();
-          },
+            ),
         },
         error: {},
       },
@@ -587,43 +584,41 @@ test("login machine", async () => {
            *    (and even dispatch new events!)
            * 2. the event payload
            */
-          login: ({ next, exec }, { email, password }) => {
-            // Prepare the login function which will be executed upon state change
-            exec((dispatch) => {
-              login({ email, password })
-                .then((user) => dispatch.succeeded(user))
-                .catch((error) => dispatch.failed(error));
-            });
-
+          login: ({ update }, { email, password }) => {
             // Return the new state, with the new context
-            return next.fetching({
-              params: {
-                email,
-                password,
+            return update.fetching(
+              {
+                params: {
+                  email,
+                  password,
+                },
               },
-            });
+              (dispatch) => {
+                login({ email, password })
+                  .then((user) => dispatch.succeeded(user))
+                  .catch((error) => dispatch.failed(error));
+              }
+            );
           },
         },
         // Rinse and repeat
         fetching: {
-          succeeded: ({ next }, user) => next.loggedIn({ user }),
-          failed: ({ exec, next }, error) => {
-            exec(() => console.error("Test message: Something bad happened!"));
-            return next.error({ error });
-          },
+          succeeded: ({ update }, user) => update.loggedIn({ user }),
+          failed: ({ update }, error) =>
+            update.error({ error }, () =>
+              console.error("Test message: Something bad happened!")
+            ),
         },
         loggedIn: {
-          logout: ({ next }) => next.initial(),
+          logout: ({ update }) => update.initial(),
         },
         error: {
-          retry: ({ next, context, exec }) => {
-            exec((dispatch) => {
+          retry: ({ update, context }) =>
+            update.fetching((dispatch) => {
               login(context.params)
                 .then((user) => dispatch.succeeded(user))
                 .catch((error) => dispatch.failed(error));
-            });
-            return next.fetching();
-          },
+            }),
         },
       },
       ({ initial }) => initial()
@@ -689,7 +684,7 @@ test("counter example with enter and exit effects", () => {
     useMachine<CounterMachine>(
       {
         idle: {
-          start: ({ next }) => next.counting(),
+          start: ({ update }) => update.counting(),
         },
         counting: {
           $entry: ({ state, previousState, context, dispatch }) => {
@@ -697,14 +692,14 @@ test("counter example with enter and exit effects", () => {
             console.log(`Count is ${context.count}`);
             dispatch.increment();
           },
-          increment: ({ next, context }) =>
-            next.counting({ count: context.count + 1 }),
-          pause: ({ next }) => next.paused(),
-          stop: ({ next }) => next.stopped(),
+          increment: ({ update, context }) =>
+            update.counting({ count: context.count + 1 }),
+          pause: ({ update }) => update.paused(),
+          stop: ({ update }) => update.stopped(),
           $exit: ({ nextState }) => console.log(`Heading off to ${nextState}`),
         },
         paused: {
-          resume: ({ next }) => next.counting(),
+          resume: ({ update }) => update.counting(),
         },
         stopped: {},
       },
@@ -768,8 +763,8 @@ test("don't dispatch after unmount", async () => {
     useMachine<M>(
       {
         s1: {
-          e1: ({ exec }) => {
-            exec((dispatch) => {
+          e1: ({ update }) =>
+            update((dispatch) => {
               const timeout = setTimeout(() => {
                 affected = true;
                 dispatch.e2();
@@ -781,9 +776,8 @@ test("don't dispatch after unmount", async () => {
                 clearTimeout(timeout);
                 cleanedUp = true;
               };
-            });
-          },
-          e2: ({ next }) => next.s2(),
+            }),
+          e2: ({ update }) => update.s2(),
         },
         s2: {
           $entry: () => {

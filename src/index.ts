@@ -153,43 +153,89 @@ type ContextDiff<
   >
 >;
 
-type CreateUpdateObject<
+interface OptionalContextUpdater<
+  M extends MachineType,
+  Current extends keyof States<M>,
+  Target extends keyof States<M>
+> {
+  (context?: ContextDiff<States<M>, Current, Target>): UpdateObject<States<M>>;
+  (
+    context: ContextDiff<States<M>, Current, Target>,
+    effect: EffectFunction<M>
+  ): UpdateObject<States<M>>;
+  (effect: EffectFunction<M>): UpdateObject<States<M>>;
+}
+
+interface RequiredContextUpdater<
+  M extends MachineType,
+  Current extends keyof States<M>,
+  Target extends keyof States<M>
+> {
+  (
+    context: ContextDiff<States<M>, Current, Target>,
+    effect?: EffectFunction<M>
+  ): UpdateObject<States<M>>;
+}
+
+type Updater<
   M extends MachineType,
   Current extends keyof States<M>,
   Target extends keyof States<M>
 > = {} extends ContextDiff<States<M>, Current, Target>
-  ? (
-      context?: ContextDiff<States<M>, Current, Target>
-    ) => UpdateObject<States<M>>
-  : (
-      context: ContextDiff<States<M>, Current, Target>
-    ) => UpdateObject<States<M>>;
+  ? OptionalContextUpdater<M, Current, Target>
+  : RequiredContextUpdater<M, Current, Target>;
 
-type UpdateObjectCreatorMap<
-  M extends MachineType,
-  Current extends keyof States<M>
-> = {
-  [K in keyof States<M>]: CreateUpdateObject<M, Current, K>;
+type UpdaterMap<M extends MachineType, Current extends keyof States<M>> = {
+  (effect: EffectFunction<M>): UpdateObject<States<M>>;
+} & {
+  [K in keyof States<M>]: Updater<M, Current, K>;
 };
 
-const createUpdateObjectCreatorMap = <
+const createUpdaterMap = <
   M extends MachineType,
   Current extends keyof States<M>
 >(
   schema: Schema<M>,
-  state: ReducerResultState<M>
-): UpdateObjectCreatorMap<M, Current> => {
+  state: ReducerResultState<M>,
+  exec: (effect: EffectFunction<M>) => void
+): UpdaterMap<M, Current> => {
+  const update = (effect: EffectFunction<M>) => {
+    exec(effect);
+    return {
+      state: state.current,
+      context: state.context,
+    };
+  };
+
   return Object.assign(
-    {},
+    update,
     ...getKeys(schema).map((key) => {
       return {
-        [key]: (context) => ({
-          state: key,
-          context: {
-            ...state.context,
-            ...context,
-          },
-        }),
+        [key]: (arg1, arg2) => {
+          const { context, effect } = isObject(arg1)
+            ? {
+                context: arg1,
+                effect: arg2 && typeof arg2 === "function" ? arg2 : undefined,
+              }
+            : {
+                context: undefined,
+                effect: arg1 && typeof arg1 === "function" ? arg1 : undefined,
+              };
+
+          if (effect) {
+            exec(effect);
+          }
+
+          return {
+            state: key,
+            context: context
+              ? {
+                  ...state.context,
+                  ...context,
+                }
+              : state.context,
+          };
+        },
       };
     })
   );
@@ -201,8 +247,7 @@ interface CreateTransitionFnMachineObject<
 > {
   state: Current;
   context: States<M>[Current]["context"];
-  exec: (effect: EffectFunction<M>) => void;
-  next: UpdateObjectCreatorMap<M, Current>;
+  update: UpdaterMap<M, Current>;
 }
 
 type CreateTranstionFn<
@@ -418,9 +463,8 @@ export const createMachine = <M extends Machine>(
         {
           state: state.current,
           context: state.context,
-          exec: execAndStoreEntity,
           // @ts-ignore
-          next: createUpdateObjectCreatorMap(schema, state),
+          update: createUpdaterMap(schema, state, execAndStoreEntity),
         },
         // @ts-ignore
         event?.payload
