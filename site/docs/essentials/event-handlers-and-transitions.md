@@ -11,13 +11,13 @@ Transitioning to a new state is simple. Showing is better than telling, so let's
 ```tsx
 useMachine({
   state1: {
-    event1: ({ next }) => next.state2(),
+    event1: ({ update }) => update.state2(),
   },
   state2: {},
 });
 ```
 
-That's all there's to it! The `next` object that is provided to our event handler function, has functions attached to it that will help us in creating state and context updates. It's important to note that this function only _creates_ a new state, it does not actually update the state of our machine. This means that we must return the result for anything to actually happen.
+That's all there's to it! The `update` object that is provided to our event handler function, has functions attached to it that will help us in creating state and context updates. It's important to note that this function only _creates_ a new state, it does not actually update the state of our machine. This means that we must return the result for anything to actually happen.
 
 :::note
 The event handler function should be [pure](https://en.wikipedia.org/wiki/Pure_function). If you need to perform side-effects, we'll talk about that in just a minute.
@@ -30,9 +30,9 @@ In addition to transitioning between states, an event may also update the [conte
 ```tsx
 useMachine({
   state1: {
-    event1: ({ next }) =>
+    event1: ({ update }) =>
       // Will create a context update while staying in the same state
-      next.state1({
+      update.state1({
         someContextProperty: "some value",
       }),
   },
@@ -72,32 +72,37 @@ useMachine({
 
 ## Executing side-effects
 
-Event handler functions should be pure, so side-effects must be handled on Fini's terms. Luckily, this is also trivial. Alongside the `context` property, the `exec` function is also passed into the event handler function. You can use `exec` to safely fire away any and all side-effects.
+Event handler functions should be pure, so side-effects must be handled on Fini's terms. Luckily, this is also trivial. The functions defined on `update` also accepts a function which will be executed.
+
+In the following example, we'll create an update with `fetchingUser` as the next state, and define a side-effect that will run when the update is applied.
 
 ```tsx
 useMachine({
   idle: {
-    login: ({ context, exec }, userId) => {
+    login: ({ context, update }, userId) => {
       // highlight-start
-      exec(() => {
+      update.fetchingUser(() => {
         fetchUser(userId).then((user) => console.log(user));
       });
       // highlight-end
-      return "fetchingUser";
     },
   },
   fetchingUser: {},
 });
 ```
 
-As you can see, `exec` accepts a function that triggers the side-effects. The function passed into `exec` also receives a dispatcher you can use to dispatch events from your side-effect, like in the example below:
+:::tip
+If the event handler should simply execute an effect without updating any state, you can simply call `update` directly with your function: `update(() => console.log("Hi!"))`
+:::
+
+The function passed into `update` also receives a dispatcher you can use to dispatch events from your side-effect, like in the example below:
 
 ```tsx
 useMachine({
   idle: {
-    login: ({ context, exec }, userId) => {
+    login: ({ context, update }, userId) => {
       // highlight-start
-      exec((dispatch) => {
+      update((dispatch) => {
         fetchUser(userId).then((user) => dispatch.success(user));
       });
       // highlight-end
@@ -105,10 +110,10 @@ useMachine({
     },
   },
   fetchingUser: {
-    success: ({ context }, user) => ({
-      ...context,
-      user,
-    }),
+    success: ({ update }, user) =>
+      update.loggedIn({
+        user,
+      }),
   },
 });
 ```
@@ -135,6 +140,6 @@ useMachine(
 );
 ```
 
-`$entry` and `$exit` are pretty similar to regular event handler functions, except they don't return a new state. They are only for running effects, which is also why you don't need to wrap them in the `exec` function - Fini will do that for you behind the scenes.
+`$entry` and `$exit` are pretty similar to regular event handler functions, except they don't return a new state. They are only for running effects, which is also why you don't need to wrap them in the `update` function - Fini will do that for you behind the scenes.
 
 Both functions also receive an object containing the current `state`, `context` and the `dispatch` function. Additionally, `$entry` receives `previousState`, and `$exit` receieves `nextState`.

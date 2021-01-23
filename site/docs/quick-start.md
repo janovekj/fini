@@ -48,28 +48,32 @@ const App = () => {
       idle: {
         // Event handler function which transitions into
         // the `counting` state, and sets the current count to 0
-        start: ({ next }) => next.counting({ count: 0 }),
-        log: ({ exec }) => {
+        start: ({ update }) => update.counting({ count: 0 }),
+        log: ({ update }) => {
           // execute a side-effect
-          exec(() => console.log("Haven't started counting yet"));
+          update(() => console.log("Haven't started counting yet"));
         },
       },
       counting: {
         // Updates the context by incrementing the current count,
         // if max count hasn't already been reached
-        increment: ({ next, context }) =>
-          next.counting({
+        increment: ({ update, context }) =>
+          update.counting({
             count:
               context.count === context.maxCount
                 ? context.count
                 : context.count + 1,
           }),
         set: ({ next }, count) =>
-          next.counting({
-            count,
-          }),
-        log: ({ exec, context }) => {
-          exec(() => console.log(`Current count is ${context.count}`));
+          // Update context and run a side-effect
+          update.counting(
+            {
+              count,
+            },
+            () => console.log(`Count was set to ${count}`)
+          ),
+        log: ({ update, context }) => {
+          update(() => console.log(`Current count is ${context.count}`));
         },
       },
     },
