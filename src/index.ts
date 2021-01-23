@@ -4,11 +4,13 @@ import {
   EffectEntity,
 } from "use-effect-reducer";
 
+const isProduction = process.env.NODE_ENV === "production";
+
 const dev = {
   warn: (...args: Parameters<typeof console.warn>) =>
-    global.__DEV__ && console.warn(...args),
+    !isProduction && console.warn(...args),
   error: (...args: Parameters<typeof console.error>) =>
-    global.__DEV__ && console.error(...args),
+    !isProduction && console.error(...args),
 };
 
 type Expand<T> = T extends infer O ? { [K in keyof O]: O[K] } : never;

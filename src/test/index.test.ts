@@ -5,10 +5,6 @@ import { is, equal, type, ok, not, unreachable } from "uvu/assert";
 
 const test = suite("useMachine");
 
-test.before(() => {
-  global.__DEV__ = true;
-});
-
 test("initial state with context", () => {
   type M = {
     states: {
