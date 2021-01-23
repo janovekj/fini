@@ -5,6 +5,24 @@ import { is, equal, type, ok, not, unreachable } from "uvu/assert";
 
 const test = suite("useMachine");
 
+test("falsy event handler return value", () => {
+  const { result } = renderHook(() =>
+    useMachine(
+      {
+        a: {
+          p: () => false,
+        },
+      },
+      ({ a }) => a()
+    )
+  );
+  act(() => {
+    result.current.p();
+  });
+
+  is(result.current.current, "a");
+});
+
 test("initial state with context", () => {
   type M = {
     states: {

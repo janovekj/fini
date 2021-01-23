@@ -137,8 +137,10 @@ interface EffectFunction<M extends MachineType> {
   (dispatcher: Dispatcher<M>): void | CleanupFunction;
 }
 
+type Falsy = false | 0 | "" | null | undefined;
+
 /** The result of a transition */
-type Transition<S extends StateMapType> = Update<S> | void;
+type Transition<S extends StateMapType> = Update<S> | Falsy | void;
 
 type ContextDiff<
   States extends StateMapType,
@@ -478,7 +480,7 @@ export const createMachine = <M extends Machine>(
         if (isObject(update)) {
           // @ts-ignore
           return update.state;
-        } else if (update === undefined) {
+        } else if (!update) {
           return state.current;
         } else {
           return undefined;
@@ -489,7 +491,7 @@ export const createMachine = <M extends Machine>(
         if (isObject(update)) {
           // @ts-ignore
           return update.context;
-        } else if (update === undefined) {
+        } else if (!update) {
           return state.context;
         } else {
           return undefined;
