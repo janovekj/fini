@@ -6,8 +6,18 @@ import { is, equal, type, ok, not, unreachable } from "uvu/assert";
 const test = suite("useMachine");
 
 test("falsy event handler return value", () => {
+  type M = {
+    states: {
+      a: {
+        events: {
+          p: void;
+        };
+      };
+    };
+  };
+
   const { result } = renderHook(() =>
-    useMachine(
+    useMachine<M>(
       {
         a: {
           p: () => false,
