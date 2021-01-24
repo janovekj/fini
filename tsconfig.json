@@ -7,13 +7,15 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "keyofStringsOnly": true,
-    "forceConsistentCasingInFileNames": true
+    "forceConsistentCasingInFileNames": true,
+    "strictNullChecks": true
   },
   "ts-node": {
     "transpileOnly": true,
     "compilerOptions": {
       "module": "CommonJS",
-      "target": "ES2019"
+      "target": "ES2019",
+      "strictNullChecks": true
     },
     "include": ["test/**/*"]
   }

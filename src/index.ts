@@ -59,9 +59,33 @@ interface MachineType {
   events: EventMapType;
 }
 
+interface RequiredPayload<Payload> {
+  type: "fini.requiredPayload";
+  payload: Payload;
+}
+
+interface OptionalPayload<Payload> {
+  type: "fini.optionalPayload";
+  payload: Payload;
+}
+
+interface NoPayload {
+  type: "fini.noPayload";
+}
+
+type PayloadType = RequiredPayload<any> | OptionalPayload<any> | NoPayload;
+
+type NormalizeEvents<Events extends EventMapType> = {
+  [E in keyof Events]-?: {} extends Pick<Events, E>
+    ? OptionalPayload<Events[E]>
+    : [void] extends [Events[E]]
+    ? NoPayload
+    : RequiredPayload<Events[E]>;
+};
+
 interface StateWithDefaults<S extends Partial<State>> {
   context: TypeOrEmpty<S["context"]>;
-  events: TypeOrEmpty<S["events"]>;
+  events: NormalizeEvents<TypeOrEmpty<S["events"]>>;
 }
 
 type StateMapDefinitionWithDefaults<S extends StateMapDefinition> = {
@@ -71,7 +95,7 @@ type StateMapDefinitionWithDefaults<S extends StateMapDefinition> = {
 interface MachineTypeWithDefaults<M extends Machine> {
   states: StateMapDefinitionWithDefaults<M["states"]>;
   context: TypeOrEmpty<M["context"]>;
-  events: TypeOrEmpty<M["events"]>;
+  events: NormalizeEvents<TypeOrEmpty<M["events"]>>;
 }
 
 interface StateMapDefinition {
@@ -92,7 +116,14 @@ type UpdateObject<S extends StateMapType> = {
 /** The resulting state after a transition */
 type Update<S extends StateMapType> = UpdateObject<S>;
 
-type DispatchEvent<P> = [void] extends [P] ? () => void : (payload: P) => void;
+type DispatchEvent<
+  Payload extends PayloadType
+> = Payload extends RequiredPayload<any>
+  ? (payload: Payload["payload"]) => void
+  : Payload extends OptionalPayload<any>
+  ? // ? DispatchEventWithOptionalPayload<Payload["payload"]>
+    (payload?: Payload["payload"]) => void
+  : () => void;
 
 type Dispatcher<M extends MachineType> = UnionToIntersection<
   {
@@ -257,22 +288,27 @@ interface CreateTransitionFnMachineObject<
 type CreateTranstionFn<
   M extends MachineType,
   Current extends keyof States<M>,
-  P extends any
-> = [void] extends [P]
+  Payload extends PayloadType
+> = Payload extends RequiredPayload<any>
   ? (
-      machine: Expand<CreateTransitionFnMachineObject<M, Current>>
+      machine: Expand<CreateTransitionFnMachineObject<M, Current>>,
+      payload: Payload["payload"]
+    ) => Transition<States<M>>
+  : Payload extends OptionalPayload<any>
+  ? (
+      machine: Expand<CreateTransitionFnMachineObject<M, Current>>,
+      payload?: Payload["payload"]
     ) => Transition<States<M>>
   : (
-      machine: Expand<CreateTransitionFnMachineObject<M, Current>>,
-      payload: P
+      machine: Expand<CreateTransitionFnMachineObject<M, Current>>
     ) => Transition<States<M>>;
 
 /** Reacts to an event and describes the next state and any side-effects */
 type EventHandler<
   M extends MachineType,
   Current extends keyof States<M>,
-  P extends any
-> = CreateTranstionFn<M, Current, P>;
+  Payload extends PayloadType
+> = CreateTranstionFn<M, Current, Payload>;
 
 interface StateEntryEffect<
   M extends MachineType,
@@ -314,11 +350,18 @@ type EventHandlerMap<M extends MachineType, K extends keyof States<M>> = {
     $exit?: StateExitEffect<M>;
   };
 
-type EventObject<S extends StateMapType> = {
+type EventObject<
+  Key,
+  Payload extends PayloadType
+> = Payload extends RequiredPayload<any>
+  ? { type: Key; payload: Payload["payload"] }
+  : Payload extends OptionalPayload<any>
+  ? { type: Key; payload?: Payload["payload"] }
+  : { type: Key };
+
+type Events<S extends StateMapType> = {
   [K in keyof S]: {
-    [E in keyof S[K]["events"]]: S[K]["events"][E] extends {}
-      ? { type: E; payload: S[K]["events"][E] }
-      : { type: E };
+    [E in keyof S[K]["events"]]: EventObject<E, S[K]["events"][E]>;
   }[keyof S[K]["events"]];
 }[keyof S];
 
@@ -345,7 +388,7 @@ type ReducerResultState<M extends MachineType> = {
 
 interface ReducerResult<M extends MachineType> {
   state: ReducerResultState<M>;
-  effects: EffectEntity<ReducerResult<M>, EventObject<States<M>>>[];
+  effects: EffectEntity<ReducerResult<M>, Events<States<M>>>[];
 }
 
 type Schema<M extends Machine> = {
@@ -401,7 +444,7 @@ interface CreateMachineResult<M extends Machine> {
     dispatcher: Dispatcher<MachineTypeWithDefaults<M>>
   ) => EffectReducer<
     ReducerResult<MachineTypeWithDefaults<M>>,
-    EventObject<States<MachineTypeWithDefaults<M>>>
+    Events<States<MachineTypeWithDefaults<M>>>
   >;
 }
 
@@ -420,7 +463,7 @@ export const createMachine = <M extends Machine>(
     type StateMap = States<MachineWithDefaults>;
     const reducer: EffectReducer<
       ReducerResult<MachineWithDefaults>,
-      EventObject<StateMap>
+      Events<StateMap>
     > = ({ state, effects: oldEffects }, event, exec) => {
       if (!(state.current in schema)) {
         dev.error(`State '${state.current}' does not exist in schema`);
@@ -452,7 +495,7 @@ export const createMachine = <M extends Machine>(
 
       const newEffects: EffectEntity<
         ReducerResult<MachineWithDefaults>,
-        EventObject<StateMap>
+        Events<StateMap>
       >[] = [];
 
       const execAndStoreEntity = (
@@ -504,7 +547,7 @@ export const createMachine = <M extends Machine>(
 
       let allEffects: EffectEntity<
         ReducerResult<MachineWithDefaults>,
-        EventObject<StateMap>
+        Events<StateMap>
       >[] = [];
       if (nextState && nextState !== state.current) {
         exec(() => {
@@ -589,7 +632,7 @@ export function useMachine<M extends Machine>(
 
   const reducer: EffectReducer<
     ReducerResult<MachineWithDefaults>,
-    EventObject<StateMap>
+    Events<StateMap>
   > = isCreateMachineResult(machineDefinition)
     ? machineDefinition.createReducer(dispatcher)
     : createMachine(schema).createReducer(dispatcher);
@@ -611,7 +654,7 @@ export function useMachine<M extends Machine>(
     const initialStateNode = schema[initial.current];
     const effects: EffectEntity<
       ReducerResult<MachineWithDefaults>,
-      EventObject<StateMap>
+      Events<StateMap>
     >[] = [];
     if (initialStateNode.$entry) {
       const effectEntity = exec(

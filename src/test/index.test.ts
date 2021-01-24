@@ -145,6 +145,43 @@ test("dispatch event with payload", () => {
   is(result.current.context.prop, "new value");
 });
 
+test("dispatch event with optional payload", () => {
+  type M = {
+    states: {
+      a: {
+        events: {
+          p?: string;
+        };
+      };
+      b: {
+        context: {
+          prop: string;
+        };
+      };
+    };
+  };
+
+  const { result } = renderHook(() =>
+    useMachine<M>(
+      {
+        a: {
+          p: ({ update }, payload) => {
+            return payload ? update.b({ prop: payload }) : update.a();
+          },
+        },
+        b: {},
+      },
+      ({ a }) => a()
+    )
+  );
+
+  act(() => {
+    result.current.p();
+  });
+
+  ok(result.current.a);
+});
+
 test("event handler with side-effect", () => {
   type M = {
     states: {
