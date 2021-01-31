@@ -486,10 +486,6 @@ export const createMachine = <M extends Machine>(
       const eventHandler = eventHandlerMap[event.type];
 
       if (!eventHandler) {
-        dev.warn(
-          `Event handler for '${event.type}' does not exist in state '${state.current}'`
-        );
-
         return { state, effects: [] };
       }
 
